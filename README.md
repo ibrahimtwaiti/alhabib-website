@@ -1,80 +1,34 @@
-# ALHABIB Rehabilitation Center Website
+# ALHABIB Rehabilitation Center — V2 staging branch
 
-A bilingual (Arabic/English) Next.js starter for the Alhabib Physical Therapy & Medical Rehabilitation Center.
+A bilingual public website and Supabase-based administration scaffold for Alhabib Physical Therapy & Medical Rehabilitation Center.
 
-## Included in this first implementation
+## What's new in V2
 
-- Responsive bilingual landing page with RTL/LTR switching.
-- Appointment enquiry form that prepares a WhatsApp message and opens `wa.me` (no internal patient booking storage).
-- Manual earliest-availability settings by department in the admin dashboard; the public form reads the latest active setting from Supabase.
-- Separate admin sign-in page using Supabase Auth.
-- Protected admin dashboard with role check (`super_admin` / `admin`) and a working initial specialty-create/list module.
-- Supabase schema for departments, specialties, specialists, specialty relationships, manual availability, articles, categories, achievements, settings, dynamic sections, and audit logs.
-- Row Level Security policies and a public media storage bucket.
+- Updated official visual identity with the clinic-approved logo, plum `#8d517a`, gray `#57585a` and white `#ffffff`.
+- Responsive, interactive home page, modern icon treatments, improved navigation, page layout and admin branding.
+- Profiles of **10 clinic professionals**, including their approved-source photos, qualifications and clinical services transcribed from the 22-page PDF supplied by the clinic. Full professional lists remain in Arabic (their source language); English summaries/titles are provided. Review spelling, degrees, certifications, services and image authorization with clinic management before launch.
+- New public routes: `/team`, `/team/[slug]`, `/specialties`, `/specialties/[slug]`, `/about`, `/booking`, `/contact`, `/achievements`, `/blog`, `/privacy`, `/terms`.
+- Booking by WhatsApp only, default `966591009916` (`0591009916` locally). The checkbox consent gate has been removed, while a privacy notice and the fact that WhatsApp does not confirm bookings remain visible.
+- Admin content modules: editable specialist, blog, achievement and WhatsApp setting entries backed by Supabase, protected by existing RLS. Published staff entries are loaded on public pages when Supabase is configured; the clinic-provided public professional profiles are bundled as a fallback. The full CMS for all site sections remains a further development step.
+- Structured metadata, sitemap route, robots route, reduced-motion support and keyboard focus indicators.
 
-Some dashboard sections are intentionally shown as module placeholders in this first scaffold. The specialist, blog, achievements, settings, dynamic-section and sub-admin management screens still need their full CRUD interfaces and final integration before production launch.
+## Local setup
 
-## Requirements
+1. Install Node.js 20+ and run `npm install`.
+2. Copy `.env.example` to `.env.local` and configure the Supabase variables and site URL.
+3. Create your Supabase project; run `supabase/schema.sql` in the Supabase SQL editor **if not already installed**. Do not reapply migrations blindly on production.
+4. Run `npm run lint` (TypeScript checking) and `npm run build`, then `npm run dev` to review the staging site.
+5. Before deployment, test RTL/LTR layouts, mobile navigation, all 10 specialist pages, department filtering, WhatsApp prefilled messages, admin login, RLS permissions, images and browser console. Verify the privacy notice and professional content with the clinic.
 
-- Node.js 20 or later
-- A Supabase project
-- A domain and hosting account (Vercel is a suggested option)
+## Configuration
 
-## Setup
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`: for public availability settings and admin.
+- `NEXT_PUBLIC_SITE_URL`: deployed canonical origin, required for meaningful sitemap URLs.
+- Booking form default number is in `lib/clinic-data.ts`; the admin settings entry can be enabled for remote configuration as a follow-up integration.
 
-1. Install dependencies:
+## Important notes
 
-   ```bash
-   npm install
-   ```
-
-2. Create a Supabase project.
-3. Open Supabase SQL Editor and run `supabase/schema.sql` once.
-4. In Supabase Authentication, create your first admin user (email/password).
-5. Copy that user's UUID and run the bootstrap statement at the bottom of `supabase/schema.sql`, replacing `AUTH_USER_UUID` and the name. Set the role to `super_admin`.
-6. Copy `.env.example` to `.env.local` and set:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `NEXT_PUBLIC_CLINIC_WHATSAPP` (international format, digits only, e.g. country code + mobile number)
-7. Run locally:
-
-   ```bash
-   npm run dev
-   ```
-
-8. Open `http://localhost:3000` for the public site and `http://localhost:3000/admin/login` for the admin portal.
-
-## Admin permissions
-
-- `super_admin` has all permissions.
-- `admin` receives explicitly assigned boolean keys in `profiles.permissions`, for example:
-
-  ```json
-  {
-    "specialties": true,
-    "specialists": true,
-    "blog": true,
-    "achievements": true,
-    "availability": true,
-    "settings": false,
-    "sections": false,
-    "media": true
-  }
-  ```
-
-Create the first super-admin profile manually. Do not expose the Supabase service-role key in the browser. Sub-admin account provisioning should be implemented through a trusted server route or Supabase Edge Function using a server-only service-role secret.
-
-## Important launch checklist
-
-- Replace all placeholder copy and sample specialties with the clinic-approved content.
-- Add the actual team profiles, credentials, experience, specialties and department assignment.
-- Configure the clinic WhatsApp number.
-- Enter approved earliest-availability text for each applicable department/specialty/specialist.
-- Upload the official logo and approved clinic photographs.
-- Complete the remaining CRUD screens and role/permission management.
-- Review privacy notice, consent language, data retention and Saudi PDPL compliance with the clinic's responsible privacy/legal owner.
-- Configure backups, domain, production environment variables, monitoring and deployment access under the clinic's ownership.
-
-## Notes about WhatsApp enquiries
-
-The browser constructs the message locally and opens WhatsApp. The site does not save the form or claim that an appointment has been booked. A staff member must confirm availability with the visitor in WhatsApp. Do not include sensitive medical records or attachments in the URL-based message.
+- The website **does not store enquiries**. Visitors fill in a form on their device, open a WhatsApp link with a prepared message and then explicitly send it in WhatsApp. Medical details in the message URL should be kept brief and non-sensitive.
+- There are **no confirmed patient testimonials, medical articles or outcome metrics** in the provided materials. V2 intentionally does not fabricate them.
+- All public assets under `public/assets/team` are cropped from the clinic-supplied PDF. No stock faces or fabricated staff portraits were used.
+- Before merging this branch into `main`, complete a live Vercel preview build and validate Supabase production configuration and permissions. This branch is **not a production deployment**.

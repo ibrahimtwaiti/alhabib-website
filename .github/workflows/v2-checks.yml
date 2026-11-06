@@ -1,0 +1,22 @@
+name: V2 quality checks
+on:
+  push:
+    branches: [version-2]
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Source and asset smoke tests
+        run: npm run test:v2
+      - name: TypeScript check
+        run: npm run lint
+      - name: Production build
+        run: npm run build
