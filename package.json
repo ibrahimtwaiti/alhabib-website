@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",
-    "test:v2": "node scripts/validate-v2.cjs"
+    "test:v2": "node scripts/validate-v2.cjs && node scripts/test-booking.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",

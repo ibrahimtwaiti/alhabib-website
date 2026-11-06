@@ -32,3 +32,17 @@ A bilingual public website and Supabase-based administration scaffold for Alhabi
 - There are **no confirmed patient testimonials, medical articles or outcome metrics** in the provided materials. V2 intentionally does not fabricate them.
 - All public assets under `public/assets/team` are cropped from the clinic-supplied PDF. No stock faces or fabricated staff portraits were used.
 - Before merging this branch into `main`, complete a live Vercel preview build and validate Supabase production configuration and permissions. This branch is **not a production deployment**.
+
+## V2.1 — إدارة الصور والأيقونات من حساب الأدمن
+
+1. سجّل الدخول إلى `/admin/login` بحساب **Super Admin** أو أدمن لديه صلاحية `specialists` لتغيير صور الفريق، وصلاحية `settings` لتغيير صور التخصصات.
+2. من لوحة التحكم اختر **الأخصائيون**، ثم اضغط **تعديل** أمام الأخصائي. في حقل **تغيير الصورة من جهازك** اختر صورة JPG/PNG/WebP/AVIF أقل من 5MB، واضغط **حفظ**. الصورة تُرفع إلى حاوية `site-media` في Supabase Storage، ويحفظ رابطها في `specialists.image_url`. بعد نشر السجل وتحديث الصفحة تظهر الصورة في بطاقات الفريق والملف المهني. يمكن أيضاً تعديل رابط الصورة مباشرة في الحقل المخصص. إن لم تختر صورة جديدة تُحفظ الصورة الحالية.
+3. من **إعدادات الموقع**، قسم **الصور والأيقونات في الموقع**، اختر تخصصاً، ثم غيّر الأيقونة من القائمة أو ارفع صورة ذات صلة. الصورة لها أولوية العرض على الأيقونة؛ اضغط **إزالة الصورة والعودة للأيقونة** لإلغاء ذلك. يمكن تغيير صورة واجهة الرئيسية (Hero) من القسم نفسه.
+4. اضغط **حفظ تغييرات الصور والأيقونات** بعد الرفع أو التعديل؛ تحفظ الاختيارات في `site_settings` تحت المفتاح `specialty_visuals` وتُقرأ في الموقع العام. يفضل تحديث الصفحة بعد الحفظ.
+5. تحقق من تفعيل `supabase/schema.sql` وسياسات RLS والتخزين وصلاحيات `media` و`settings` و`specialists`. يحتاج الأدمن لصلاحية `media` لرفع الصور أيضاً.
+
+**التاريخ:** نموذج الحجز يستخدم مدخل تاريخ قياسي باتجاه LTR، ويعرض التاريخ نصياً بصيغة اليوم ثم الشهر ثم السنة بالتقويم الميلادي، مع تنسيق الوقت بنظام 12 ساعة. قد يختلف شكل واجهة منتقي التاريخ الأصلية باختلاف المتصفح ونظام التشغيل، لكن العرض النهائي ورسالة واتساب ثابتان.
+
+**واتساب:** نص الطلب منسّق بالنجوم والإيموجي، ويذكر صراحة أن الموعد مبدئي، دون تخزين معلومات المريض في قاعدة الموقع. يجب مراجعة سياسة الخصوصية وممارسات معالجة بيانات الصحة قبل الإطلاق.
+
+**ملاحظة:** بيانات الفريق المرفقة في المصدر تعمل كبيانات عرض أولية. لتغيير الصورة من الأدمن يجب أن يوجد سجل منشور مطابق للاسم في جدول `specialists`؛ إن لم يوجد، أنشئ سجلاً بنفس الاسم ثم ارفع الصورة وانشره. لا تتم الكتابة تلقائياً إلى قاعدة Supabase الحية عند نشر كود GitHub.
