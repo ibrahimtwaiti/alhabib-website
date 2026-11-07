@@ -19,4 +19,7 @@ for(const snippet of ['*طلب حجز موعد جديد | مركز الحبيب'
 assert.ok(!message.includes('I consent'));
 const english=buildWhatsAppMessage({lang:'en',name:'Jane',phone:'0500000000',department:'men',timing:'soon'});
 assert.match(english,/not a confirmed booking/i);
+const withLocation=buildWhatsAppMessage({lang:'ar',name:'مراجع',phone:'0591234567',department:'men',city:'الدمام',email:'test@example.com',timing:'soon'});
+assert.ok(withLocation.includes('المدينة:* الدمام'));
+assert.ok(withLocation.includes('البريد الإلكتروني:* test@example.com'));
 console.log('Booking formatter: 12 checks passed');
