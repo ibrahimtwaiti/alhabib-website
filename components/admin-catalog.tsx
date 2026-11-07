@@ -36,9 +36,10 @@ async function optimizeImage(file:File):Promise<File>{
  }finally{bitmap.close()}
 }
 export async function uploadPublicImage(file:File,folder:string){
- if(file.size>5*1024*1024)throw new Error('الحد الأقصى لحجم الصورة 5 ميجابايت');
+ if(file.size>15*1024*1024)throw new Error('الحد الأقصى للملف الأصلي 15 ميجابايت');
  if(!['image/jpeg','image/png','image/webp','image/avif'].includes(file.type))throw new Error('يسمح فقط بصور JPG وPNG وWebP وAVIF');
  const optimized=await optimizeImage(file);
+ if(optimized.size>5*1024*1024)throw new Error('لم تُضغط الصورة إلى أقل من 5 ميجابايت؛ اختر ملفًا أصغر.');
  const extension=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/avif':'avif'} as Record<string,string>)[optimized.type];
  const db=createClient();
  const path=`${folder}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
