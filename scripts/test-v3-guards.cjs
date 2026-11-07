@@ -36,6 +36,8 @@ const {isV3Preview,cmsDatabaseUrl,canWriteCms,mutateCms}=moduleObject.exports;
  assert.equal(canWriteCms(),true,'production behavior remains unaffected');
  const upload=fs.readFileSync(path.join(__dirname,'../app/api/admin/upload/route.ts'),'utf8');
  assert.ok(upload.includes('if(!canWriteCms())'),'uploads must not change shared production Blob');
+ assert.ok(upload.includes('V3_PREVIEW_BLOB_READ_WRITE_TOKEN'),'preview media uploads require separate Blob token');
+ assert.ok(fs.readFileSync(path.join(__dirname,'../app/api/media/[...path]/route.ts'),'utf8').includes('V3_PREVIEW_BLOB_READ_WRITE_TOKEN'),'preview media reads support the isolated store');
  const postgres=fs.readFileSync(path.join(__dirname,'../lib/cms-postgres.ts'),'utf8');
  assert.ok(postgres.includes('if(!readOnlyPreview)await ensureSchema(sql)'),'shared preview cannot CREATE TABLE');
  const api=fs.readFileSync(path.join(__dirname,'../app/api/cms/route.ts'),'utf8');
