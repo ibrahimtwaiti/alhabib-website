@@ -1,7 +1,9 @@
 import {NextResponse} from 'next/server';import {put} from '@vercel/blob';import {randomUUID} from 'node:crypto';
 import {currentUser,hasAccess,validateOrigin} from '@/lib/admin-auth';
+import {canWriteCms} from '@/lib/cms-store';
 export const runtime='nodejs';
 export async function POST(req:Request){
+ if(!canWriteCms())return NextResponse.json({error:'رفع الصور معطل في معاينة V3 حتى يتم عزل قاعدة Neon والتخزين عن الإنتاج.'},{status:403});
  const user=await currentUser();if(!hasAccess(user,'media')&&!hasAccess(user,'specialists')&&!hasAccess(user,'specialties')&&!hasAccess(user,'settings')&&!hasAccess(user,'blog')&&!hasAccess(user,'achievements')&&!hasAccess(user,'sections'))return NextResponse.json({error:'لا تملك صلاحية رفع الصور'},{status:403});
  if(!await validateOrigin(req))return NextResponse.json({error:'طلب غير موثوق'},{status:403});
  try{const f=await req.formData();const file=f.get('file');if(!(file instanceof File)||file.size>5*1024*1024||file.size<10)return NextResponse.json({error:'حجم الصورة غير صالح'},{status:400});
