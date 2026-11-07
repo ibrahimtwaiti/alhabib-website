@@ -28,6 +28,8 @@ jobs:
         run: npm run test:cms-postgres
       - name: Public first-render image regression checks
         run: npm run test:public-images
+      - name: V3 database and upload isolation checks
+        run: npm run test:v3
       - name: TypeScript check
         run: npm run lint
       - name: Production build
