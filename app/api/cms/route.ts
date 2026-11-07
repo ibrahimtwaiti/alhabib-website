@@ -13,7 +13,9 @@ function safeBody(data:unknown){return data&&typeof data==='object'&&!Array.isAr
 function err(error:string,status=400){return NextResponse.json({error},{status,headers:{'Cache-Control':'no-store'}})}
 export async function POST(req:Request){try{
  if(!await validateOrigin(req))return err('طلب غير موثوق',403);
- const q=await req.json() as Query;
+ const raw=await req.text();
+ if(raw.length>524288)return err('الطلب كبير جداً',413);
+ const q=JSON.parse(raw) as Query;
  if(!TABLES.includes(q.table as typeof TABLES[number])&&q.table!=='profiles')return err('جدول غير معروف');
  if(!['select','insert','update','delete','upsert'].includes(q.action))return err('عملية غير صالحة');
  const user=await currentUser();const publicRead=q.action==='select';
@@ -38,20 +40,35 @@ export async function POST(req:Request){try{
  const payload=Array.isArray(q.payload)?q.payload:[q.payload];
  if(!payload.length||payload.length>30||payload.some(x=>!safeBody(x)))return err('البيانات غير صالحة');
  if(payload.some(row=>{const r=safeBody(row);return r&&(['image_url','cover_image_url'].some(k=>typeof r[k]==='string'&&!isAllowedImageUrl(String(r[k]))))}))return err('رابط الصورة غير صالح؛ استخدم رابط HTTPS أو مساراً داخل الموقع.',400);
- if(q.table==='site_settings'&&payload.some(row=>{const r=safeBody(row);const v=r?.value;return r?.key==='site_visuals'&&v&&typeof v==='object'&&!Array.isArray(v)&&Object.values(v).some(x=>typeof x==='string'&&!isAllowedImageUrl(x))}))return err('رابط الصورة غير صالح. استخدم رابط HTTPS مباشراً.',400);
+ if(q.table==='site_settings'&&payload.some(row=>{
+  const r=safeBody(row);const v=r?.value;
+  if(r?.key!=='site_visuals'||!v||typeof v!=='object'||Array.isArray(v))return false;
+  const visuals=v as Record<string,unknown>;
+  const images=['logo','hero','feature_team','feature_specialties','feature_booking','feature_care','about_personal','about_team','about_whatsapp'];
+  if(images.some(key=>visuals[key]!==undefined&&(typeof visuals[key]!=='string'||!isAllowedImageUrl(visuals[key] as string))))return true;
+  if(visuals.heroFit!==undefined&&visuals.heroFit!=='cover'&&visuals.heroFit!=='contain')return true;
+  return ['heroPositionX','heroPositionY'].some(key=>visuals[key]!==undefined&&
+   (typeof visuals[key]!=='number'||!Number.isFinite(visuals[key])||(visuals[key] as number)<0||(visuals[key] as number)>100));
+ }))return err('إعدادات الصورة غير صالحة؛ تحقق من الروابط والتمركز ونمط العرض.',400);
  if(q.action==='update'||q.action==='delete'){if(!filters.length)return err('يلزم تحديد السجل عند التعديل أو الحذف');}
  if(q.action==='upsert'&&(!q.onConflict||!/^[a-z_]{2,40}$/.test(q.onConflict)))return err('تحديد مفتاح السجل مطلوب');
  const result=await mutateCms(store=>{
   const rows=store.tables[q.table] ||= [];
-  if(q.action==='delete'){const found=filterRows(rows,filters);store.tables[q.table]=rows.filter(x=>!found.includes(x));return found}
-  if(q.action==='update'){const found=filterRows(rows,filters);for(const row of found){for(const [k,v] of Object.entries(safeBody(payload[0])||{}))if(k!=='id'&&k!=='created_at')row[k]=v;row.updated_at=new Date().toISOString()}return found}
+  const audit=(affected:Record<string,unknown>[])=>{
+   if(q.table!=='activity_logs'&&affected.length)(store.tables.activity_logs ||= []).unshift(newRow({
+    actor_id:user.id,actor_username:user.username,operation:q.action,table_name:q.table,affected_count:affected.length
+   }));
+   return affected;
+  };
+  if(q.action==='delete'){const found=filterRows(rows,filters);store.tables[q.table]=rows.filter(x=>!found.includes(x));return audit(found)}
+  if(q.action==='update'){const found=filterRows(rows,filters);for(const row of found){for(const [k,v] of Object.entries(safeBody(payload[0])||{}))if(k!=='id'&&k!=='created_at')row[k]=v;row.updated_at=new Date().toISOString()}return audit(found)}
   const added:Record<string,unknown>[]=[];
   for(const candidate of payload){const body=safeBody(candidate)!;
    const clean=Object.fromEntries(Object.entries(body).filter(([k])=>k!=='created_at'&&k!=='updated_at'));
    const index=q.action==='upsert'?rows.findIndex(x=>x[q.onConflict!]===body[q.onConflict!]): -1;
    if(index>=0){Object.assign(rows[index],clean,{updated_at:new Date().toISOString()});added.push(rows[index]);continue}
    const row=newRow(clean);rows.push(row);added.push(row);
-  }return added;
+  }return audit(added);
  });
  return NextResponse.json({data:result,error:null},{headers:{'Cache-Control':'no-store'}});
  }catch(e){
