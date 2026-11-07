@@ -1,7 +1,7 @@
-name: V2 quality checks
+name: V2/V3 quality checks
 on:
   push:
-    branches: [version-2]
+    branches: [version-2, version-3]
   pull_request:
     branches: [main]
 jobs:
