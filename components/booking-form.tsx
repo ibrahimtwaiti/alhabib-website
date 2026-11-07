@@ -2,12 +2,10 @@
 import {useEffect,useMemo,useState} from 'react';
 import {CalendarDays,CheckCircle2,MessageCircle,ShieldCheck} from 'lucide-react';
 import {createClient} from '@/lib/cms-client';
-import {tr,whatsappNumber,type Language} from '@/lib/clinic-data';
-import {useClinicCatalog} from '@/components/use-clinic-catalog';
+import {tr,whatsappNumber,type Language,type Profile,type Specialty} from '@/lib/clinic-data';
 import {buildWhatsAppMessage,displayDate,displayTime,localTodayISO} from '@/lib/booking-message';
 
-export default function BookingForm({lang}:{lang:Language}){
- const {people,services}=useClinicCatalog();
+export default function BookingForm({lang,people,services}:{lang:Language,people:Profile[],services:Specialty[]}){
  const [department,setDepartment]=useState<'men'|'women'>('women');
  const [specialty,setSpecialty]=useState('');const [expert,setExpert]=useState('');
  const [issue,setIssue]=useState('');const [when,setWhen]=useState<'soon'|'specific'>('soon');
