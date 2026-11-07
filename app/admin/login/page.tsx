@@ -74,21 +74,21 @@ export default function AdminLogin() {
       <div className="admin-login-card w-full max-w-[540px]">
         <div className="flex justify-between items-center gap-3"><div className="admin-login-symbol"><LockKeyhole size={30}/></div><span className="admin-login-brandmark">ALHABIB <span>•</span> ADMIN</span></div>
         <h2 className="text-3xl md:text-4xl font-extrabold mt-8">تسجيل دخول الإدارة</h2>
-        <p className="mt-3 text-[15px] leading-8 text-[#57585a]">أدخل البريد الإلكتروني وكلمة المرور الخاصة بحسابك الإداري المعتمد.</p>
+        <p className="mt-3 text-[15px] leading-8 text-[#57585a]">سجّل ببريدك الإلكتروني وكلمة مرور حساب المدير المسجل في Supabase. لا توجد كلمة مرور عامة باسم admin.</p>
         {!configured && <div className="admin-setup-notice mt-6" role="alert">
           <strong className="block text-base">يلزم تفعيل الاتصال بقاعدة البيانات</strong>
-          <p className="mt-2 text-sm leading-7">لم يُهيأ Supabase لهذا النشر، لذلك لا يمكن تسجيل الدخول بأي كلمة مرور، بما فيها <code>admin</code>.</p>
-          <p className="mt-2 text-sm leading-7">لمدير الموقع: أضف <code>NEXT_PUBLIC_SUPABASE_URL</code> و <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> في إعدادات بيئة Vercel لهذا النشر، ثم أعد النشر وأنشئ حساب مدير في Supabase.</p>
+          <p className="mt-2 text-sm leading-7">نسخة الموقع المعروضة لا تحتوي على إعدادات الاتصال بـ Supabase؛ لهذا لن تعمل أي كلمة مرور، بما فيها <code>admin</code>.</p>
+          <p className="mt-2 text-sm leading-7">لتفعيل الدخول: اربط مشروع Supabase الخاص بالمركز ببيئة <b>Preview</b> في Vercel عبر <code>NEXT_PUBLIC_SUPABASE_URL</code> و <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> أو <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code>، ثم أعد النشر. بعد ذلك أنشئ حساب المدير في Supabase وربطه بدور <code>super_admin</code>.</p>
           <Link href="https://github.com/ibrahimtwaiti/alhabib-website/blob/version-2/docs/ADMIN-ACCESS.md" target="_blank" rel="noopener noreferrer" className="inline-flex underline font-bold text-sm mt-3">دليل تفعيل حساب المدير</Link>
         </div>}
         <form onSubmit={signIn} className="mt-7 space-y-5">
-          <div><label className="label" htmlFor="admin-email">البريد الإلكتروني</label><div className="relative"><Mail aria-hidden="true" size={18} className="absolute end-4 top-1/2 -translate-y-1/2 text-[#8d517a]"/><input id="admin-email" type="email" autoComplete="username" dir="ltr" required className="field admin-login-input pe-11" placeholder="name@example.com" value={email} onChange={e=>setEmail(e.target.value)}/></div></div>
+          <div><label className="label" htmlFor="admin-email">البريد الإلكتروني</label><div className="relative"><Mail aria-hidden="true" size={18} className="absolute end-4 top-1/2 -translate-y-1/2 text-[#327f70]"/><input id="admin-email" type="email" autoComplete="username" dir="ltr" required className="field admin-login-input pe-11" placeholder="name@example.com" value={email} onChange={e=>setEmail(e.target.value)}/></div></div>
           <div><label className="label" htmlFor="admin-password">كلمة المرور</label><div className="relative"><input id="admin-password" type={visible?'text':'password'} dir="ltr" autoComplete="current-password" required className="field admin-login-input !pe-12" value={password} onChange={e=>setPassword(e.target.value)}/><button type="button" className="absolute end-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-[#57585a] hover:text-[#8d517a]" onClick={()=>setVisible(v=>!v)} aria-label={visible?'إخفاء كلمة المرور':'إظهار كلمة المرور'}>{visible?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></div>
           {error && <p className="text-sm text-red-700 leading-7" role="alert">{error}</p>}
           {notice && <p className="text-sm text-[#57585a] leading-7" role="status">{notice}</p>}
           <button type="submit" disabled={!configured||loading} className="button-primary w-full !min-h-[58px]"><KeyRound size={19}/>{loading?'جارٍ التحقق...':'تسجيل الدخول'}</button>
         </form>
-        {configured && <button type="button" onClick={resetPassword} disabled={resetting} className="mt-5 w-full text-sm font-bold text-[#8d517a] hover:underline disabled:opacity-60">{resetting?'جارٍ إرسال رابط الاستعادة...':'نسيت كلمة المرور؟'}</button>}
+        {configured && <button type="button" onClick={resetPassword} disabled={resetting} className="mt-5 w-full text-sm font-bold text-[#327f70] hover:underline disabled:opacity-60">{resetting?'جارٍ إرسال رابط الاستعادة...':'نسيت كلمة المرور؟'}</button>}
         <div className="mt-8 border-t border-[#dadada] pt-6 text-center"><Link href="/" className="text-sm font-bold text-[#57585a] hover:text-[#8d517a]">العودة إلى الموقع الرئيسي</Link></div>
         <p className="mt-5 text-xs text-center text-[#57585a]">لا توجد كلمة مرور افتراضية عامة؛ يستخدم كل مدير حسابه الخاص.</p>
       </div>

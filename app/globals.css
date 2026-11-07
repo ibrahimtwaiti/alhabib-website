@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @tailwind base;@tailwind components;@tailwind utilities;
-:root{--brand:#8d517a;--brand-dark:#774468;--ink:#57585a;--graphite:#57585a;--paper:#ffffff;--cream:#f9f9f9;--line:#dedede;--muted:#57585a;--subtle:#f4f4f4;--shadow:0 18px 55px rgba(87,88,90,.12)}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#ffffff;color:var(--ink);font-family:'IBM Plex Sans Arabic','Plus Jakarta Sans',Tahoma,sans-serif;-webkit-font-smoothing:antialiased}body[dir=ltr], [dir=ltr]{font-family:'Plus Jakarta Sans','IBM Plex Sans Arabic',sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}img{max-width:100%}::selection{background:#eddce8;color:var(--brand-dark)}:focus-visible{outline:3px solid #bf80aa;outline-offset:3px}
+:root{--brand:#8d517a;--brand-dark:#774468;--ink:#57585a;--graphite:#57585a;--paper:#ffffff;--cream:#f9f9f9;--line:#dedede;--muted:#57585a;--mint:#77c9b6;--mint-soft:#eaf8f4;--subtle:#f3faf8;--shadow:0 18px 55px rgba(87,88,90,.12)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#ffffff;color:var(--ink);font-family:'IBM Plex Sans Arabic','Plus Jakarta Sans',Tahoma,sans-serif;-webkit-font-smoothing:antialiased}body[dir=ltr], [dir=ltr]{font-family:'Plus Jakarta Sans','IBM Plex Sans Arabic',sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}img{max-width:100%}::selection{background:#77c9b6;color:#253a37}:focus-visible{outline:3px solid #4ba890;outline-offset:3px}
 .container{width:min(1240px,calc(100% - 44px));margin-inline:auto}.wide{width:min(1370px,calc(100% - 40px));margin-inline:auto}.section{padding:96px 0}.kicker{display:inline-flex;align-items:center;gap:9px;color:var(--brand);font-size:13px;letter-spacing:.06em;font-weight:700}.section-title{color:#46434a;font-size:clamp(29px,4vw,47px);line-height:1.38;letter-spacing:-.035em;font-weight:800}.section-text{color:#777078;line-height:2;font-size:16px}.gradient-text{background:linear-gradient(135deg,#a66b96,#6b3a5c);-webkit-background-clip:text;background-clip:text;color:transparent}.surface{background:linear-gradient(155deg,#ffffff,#f2f2f2)}.brand-bg{background:linear-gradient(140deg,#57585a 0%,#57585a 47%,#8d517a 100%)}.shadow-soft{box-shadow:var(--shadow)}
 .button-primary,.button-outline,.button-white{display:inline-flex;align-items:center;justify-content:center;gap:11px;padding:14px 24px;border-radius:16px;font-size:14px;font-weight:700;min-height:50px;transition:transform .25s,box-shadow .25s,background .25s;white-space:nowrap}.button-primary{background:var(--brand);color:white;border:1px solid var(--brand);box-shadow:0 12px 25px #8d517a33}.button-primary:hover{background:var(--brand-dark);transform:translateY(-3px);box-shadow:0 18px 30px #8d517a3b}.button-outline{border:1px solid #dbc6d5;color:var(--brand-dark);background:white}.button-outline:hover{transform:translateY(-3px);border-color:var(--brand)}.button-white{background:white;color:var(--brand-dark)}.button-white:hover{transform:translateY(-3px)}.button-primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
 .header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.96);backdrop-filter:blur(18px);border-bottom:1px solid #d9d9d9;box-shadow:0 5px 16px rgba(87,88,90,.05)}.navlink{font-size:13px;font-weight:700;color:#69636b;transition:color .2s}.navlink:hover{color:var(--brand)}.topline{background:#57585a;color:#fff;font-size:12px;border-bottom:3px solid #8d517a}.nav-mobile{position:absolute;top:100%;left:0;right:0;padding:14px 24px 24px;background:white;box-shadow:0 20px 30px #46304115;border-top:1px solid var(--line)}
@@ -18,37 +18,81 @@
 .specialty-image{width:100%;height:136px;overflow:hidden;border-radius:18px;border:1px solid #f0e4ed;background:linear-gradient(145deg,#fff,#f8eff5);box-shadow:0 10px 22px #8d517a12;padding:8px;transition:transform .25s,box-shadow .25s}
 .specialty-card:hover .specialty-image{transform:translateY(-4px) scale(1.02);box-shadow:0 15px 32px #8d517a22}
 
-/* V2.3 — official three-tone identity: mauve, graphite, white. */
-body{color:#57585a;background:#ffffff}
-.section-title,h1,h2,h3,h4{color:#57585a}
-.gradient-text{background:linear-gradient(100deg,#8d517a 25%,#57585a 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
-.section:nth-of-type(even){background-color:#f6f6f6}
-.button-outline{border:1.5px solid #57585a;color:#57585a;background:#fff}
-.button-outline:hover{color:#8d517a;border-color:#8d517a;background:#fff}
-.button-white{color:#57585a}
-.topline a{color:#fff}
-.navlink{color:#57585a}
-.navlink:hover,.kicker,.eyebrow{color:#8d517a}
-.profile-card,.specialty-card,.feature-card{border-color:#dadada}
-.profile-card:hover,.specialty-card:hover,.feature-card:hover{border-color:#8d517a}
+/* V2.4 — approved four-colour identity, applied to ALL surfaces. 
+   Brand: mauve #8d517a · graphite #57585a · white #ffffff · mint #77c9b6.
+   Dark text on mint is deliberate for WCAG contrast. */
+:root{--brand:#8d517a;--brand-dark:#704062;--graphite:#57585a;--ink:#57585a;--paper:#ffffff;--mint:#77c9b6;--mint-dark:#276e5e;--mint-soft:#eaf8f4;--line:#dce9e4;--subtle:#f3faf8;--cream:#f7fbfa;--muted:#57585a}
+body{background:#ffffff;color:var(--graphite)}
+h1,h2,h3,h4,.section-title{color:var(--graphite)}
+.gradient-text{background:linear-gradient(112deg,#8d517a 4%,#704062 47%,#358f7b 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.section:nth-of-type(even){background-image:linear-gradient(135deg,#ffffff 0%,#f5faf8 100%)}
+.surface{background:linear-gradient(140deg,#f7fbf9 0%,#fff 54%,#f7f1f6 100%)}
+/* Identity accents in header and navigation */
+.topline{background:#57585a;border-bottom:3px solid #77c9b6;color:#fff}
+.topline svg{color:#77c9b6}.topline a{color:#c3f5e8}
+.header{border-bottom:1px solid #cce8df;box-shadow:0 7px 22px rgba(87,88,90,.055)}
+.header:after{content:'';position:absolute;inset:auto 0 0;height:2px;background:linear-gradient(90deg,#8d517a,#ffffff 48%,#77c9b6);pointer-events:none}
+.header .button-primary{background:#77c9b6;border-color:#77c9b6;color:#25483e;box-shadow:0 10px 20px rgba(62,138,118,.13)}
+.header .button-primary:hover{background:#9ce0d0;border-color:#9ce0d0;box-shadow:0 15px 28px rgba(62,138,118,.23)}
+.navlink{color:#57585a}.navlink:hover{color:#276e5e}
+.nav-mobile{border-top:2px solid #77c9b6}
+/* Main hero: all four colors appear without sacrificing text contrast */
+.hero{background:radial-gradient(circle at 10% 17%,rgba(141,81,122,.14),transparent 35%),radial-gradient(circle at 83% 74%,rgba(119,201,182,.27),transparent 39%),linear-gradient(112deg,#ffffff,#f6fbfa 57%,#faf6f9);border-bottom:5px solid #77c9b6}
+.hero-shape{border-color:#77c9b6;opacity:.6}
+.hero-photo{background:linear-gradient(155deg,#f4f4f4 0%,#e4f7f0 47%,#f0e0ec 100%);box-shadow:0 32px 65px rgba(87,88,90,.16);border:2px solid #ffffff}
+.hero-photo:before{background:rgba(119,201,182,.24)}
+.hero-photo:after{content:'';position:absolute;inset:auto 0 0;height:8px;background:linear-gradient(90deg,#8d517a,#ffffff 54%,#77c9b6);z-index:3}
+.float-pill{border-color:#c0e8dc;background:#ffffff;box-shadow:0 15px 40px rgba(45,100,83,.14)}
+.kicker,.eyebrow{color:#8d517a}.kicker svg{color:#38927c}
+.brand-bg{position:relative;background:linear-gradient(133deg,#57585a 1%,#57585a 47%,#8d517a 100%);isolation:isolate}
+.brand-bg:before{content:'';position:absolute;width:250px;height:250px;border:45px solid rgba(119,201,182,.29);border-radius:50%;left:-115px;bottom:-120px;pointer-events:none;z-index:0}
+.brand-bg>div,.brand-bg>h2,.brand-bg>p,.brand-bg>svg{position:relative;z-index:1}
+.brand-bg h1,.brand-bg h2,.brand-bg h3{color:white}
+/* Buttons, cards and iconography */
+.button-primary,.btn{background:#8d517a;border-color:#8d517a;color:#fff;box-shadow:0 9px 20px rgba(141,81,122,.17)}
+.button-primary:hover,.btn:hover{background:#704062;border-color:#704062}
+.button-outline{border:1.5px solid #77c9b6;color:#57585a;background:white}
+.button-outline:hover{background:#eaf8f4;border-color:#45a58b;color:#276e5e}
+.button-white{background:white;color:#57585a;border-bottom:3px solid #77c9b6}
+.feature-card,.profile-card,.specialty-card,.card{border-color:#dde9e5}
+.feature-card:hover,.profile-card:hover,.specialty-card:hover{border-color:#77c9b6;box-shadow:0 22px 48px rgba(64,125,109,.13)}
+.icon-3d{color:#8d517a;background:linear-gradient(145deg,#ffffff,#f2e5ef);border-color:#f4e5f0;box-shadow:inset 3px 3px 6px #fff,inset -4px -5px 11px #d8bdce80,7px 9px 18px rgba(141,81,122,.15)}
+.specialty-card:nth-child(2n) .icon-3d,.feature-card:nth-child(2n) .icon-3d,.clinic-icon-mint{color:#276e5e;background:linear-gradient(145deg,#ffffff,#d8f4eb);border-color:#b9e5d8;box-shadow:inset 3px 3px 6px #fff,inset -4px -5px 11px #95d0bf71,7px 9px 18px rgba(70,148,124,.14)}
+.profile-photo{background:linear-gradient(135deg,#f4f4f4 0%,#e6f6f1 62%,#f1e4ee 100%);border-bottom:5px solid #77c9b6}
+.profile-card:nth-child(2n) .profile-photo{border-bottom-color:#8d517a}
 .profile-card h3,.specialty-card h3{color:#57585a}
-.profile-photo{border-bottom:4px solid #8d517a}
-.tag{background:#eeeeee;color:#57585a;border:1px solid #d8d8d8}
+.tag{background:#e3f6ef;color:#276e5e;border:1px solid #b8e1d4}
+.step-number{background:#8d517a}
+.feature-card:nth-child(2) .step-number{background:#77c9b6;color:#25423a;box-shadow:0 9px 18px rgba(68,142,120,.21)}
+.feature-card:nth-child(3) .step-number{background:#57585a;box-shadow:0 9px 18px rgba(87,88,90,.19)}
+.inner-banner{background:radial-gradient(circle at 93% 10%,#e0f6ee 0,transparent 40%),linear-gradient(120deg,#ffffff,#f6eef4);border-bottom:3px solid #77c9b6}
+.bullet-list li{background:#f7fbfa;border-color:#d3eae1}
+.specialty-image{border-color:#b5e0d3;background:linear-gradient(145deg,#ffffff,#ebf8f3);box-shadow:0 10px 24px rgba(83,151,127,.13)}
+/* Booking, inputs and focus */
+.field{border-color:#d4dedb;color:#57585a}
+.field:focus,.admin-login-input:focus{border-color:#56ac97;box-shadow:0 0 0 3px rgba(119,201,182,.24)}
+.booking-panel{border:1px solid #c8e4da;border-top:6px solid #77c9b6;box-shadow:0 24px 65px rgba(87,88,90,.09)}
+.booking-panel .icon-3d{color:#276e5e;background:linear-gradient(145deg,#fff,#d9f3ea);border-color:#b7e1d4}
 .small-note{color:#57585a}
-.booking-panel{border-color:#c9c9c9;border-top:5px solid #8d517a}
-.footer a,.footer strong,.footer h3{color:#fff}
-.footer a:hover{color:#fff;text-decoration:underline;text-decoration-color:#8d517a;text-decoration-thickness:2px}
-.admin-login-layout{background:linear-gradient(140deg,#f1f1f1 0%,#ffffff 55%,#f5edf2 100%)}
-.admin-login-brand{position:relative;background:#57585a;isolation:isolate;overflow:hidden;border-inline-end:10px solid #8d517a}
-.admin-login-brand:before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 2% 3%,rgba(255,255,255,.14),transparent 45%),radial-gradient(circle at 90% 80%,rgba(141,81,122,.75),transparent 43%);z-index:-1}
+/* Footer, dashboard and login are part of the SAME brand system */
+.footer{background:#57585a;border-top:7px solid #77c9b6;color:white}
+.footer:before{content:'';display:block;height:3px;background:linear-gradient(90deg,#8d517a 0 40%,#ffffff 40% 60%,#77c9b6 60%)}
+.footer a:hover{color:#b5f0dc}
+.admin-shell{background:linear-gradient(135deg,#f4faf8,#f8f4f7)}
+.admin-sidebar{background:#57585a;color:white;border-inline-end:5px solid #77c9b6}
+.admin-link{color:#edf7f4;border-inline-start:3px solid transparent}
+.admin-link:hover,.admin-link.active{background:rgba(119,201,182,.19);color:#fff;border-inline-start-color:#77c9b6}
+.admin-login-layout{background:radial-gradient(circle at 5% 11%,rgba(119,201,182,.22),transparent 36%),linear-gradient(140deg,#f2f8f5 0%,#ffffff 55%,#f6ecf3 100%)}
+.admin-login-brand{background:#57585a;isolation:isolate;position:relative;overflow:hidden;border-inline-end:10px solid #77c9b6}
+.admin-login-brand:before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 0% 4%,rgba(119,201,182,.30),transparent 43%),radial-gradient(circle at 91% 85%,rgba(141,81,122,.72),transparent 42%);z-index:-1}
 .admin-login-brand h1{color:#fff}
-.admin-login-eyebrow{background:#8d517a;color:#fff;padding:8px 15px;font-weight:700;border-radius:999px;display:inline-block}
-.admin-login-card{background:#fff;border:1px solid #d5d5d5;border-top:6px solid #8d517a;border-radius:30px;padding:clamp(24px,5vw,45px);box-shadow:0 25px 80px rgba(87,88,90,.14)}
-.admin-login-symbol{width:68px;height:68px;border-radius:24px;display:grid;place-items:center;background:#57585a;color:#fff;box-shadow:6px 6px 0 #8d517a}
+.admin-login-eyebrow{background:#77c9b6;color:#25473d;padding:8px 15px;font-weight:800;border-radius:999px;display:inline-block}
+.admin-login-card{position:relative;overflow:hidden;background:#fff;border:1px solid #c8e3db;border-radius:30px;padding:clamp(24px,5vw,45px);box-shadow:0 25px 80px rgba(87,88,90,.12)}
+.admin-login-card:before{content:'';height:6px;position:absolute;inset:0 0 auto;background:linear-gradient(90deg,#8d517a 0%,#8d517a 41%,#ffffff 41%,#ffffff 59%,#77c9b6 59%,#77c9b6 100%)}
+.admin-login-symbol{width:68px;height:68px;border-radius:24px;display:grid;place-items:center;background:#77c9b6;color:#25473d;box-shadow:6px 6px 0 #8d517a}
 .admin-login-brandmark{font-weight:900;letter-spacing:.09em;font-size:12px;color:#57585a}
-.admin-login-brandmark span{color:#8d517a}
-.admin-login-input{height:58px;border:1px solid #bdbdbd;background:#fff}
-.admin-login-input:focus{border-color:#8d517a}
-.admin-setup-notice{background:#f4f4f4;border:1px solid #d2d2d2;border-inline-start:5px solid #8d517a;padding:18px;border-radius:14px;color:#57585a;overflow-wrap:anywhere}
-.admin-setup-notice code{font-size:.86em;color:#8d517a;font-weight:700}
+.admin-login-brandmark span{color:#77c9b6}
+.admin-login-input{height:58px;border:1px solid #bedbd1;background:white}
+.admin-setup-notice{background:#f0faf6;border:1px solid #cae8de;border-inline-start:5px solid #8d517a;padding:18px;border-radius:14px;color:#57585a;overflow-wrap:anywhere}
+.admin-setup-notice code{font-size:.86em;color:#704062;font-weight:700}
 @media(max-width:640px){.admin-login-card{border-radius:22px}}

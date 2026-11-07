@@ -23,7 +23,10 @@ assert.ok(read('components/booking-form.tsx').includes('wa.me/'),'WhatsApp reque
 assert.ok(!read('components/booking-form.tsx').includes('معاينة رسالة واتساب قبل الإرسال'),'WhatsApp preview removed');
 assert.ok(read('app/admin/login/page.tsx').includes('isSupabaseConfigured'),'admin configuration guard');
 assert.ok(fs.existsSync(path.join(root,'docs/ADMIN-ACCESS.md')),'admin access setup guide');
-assert.ok(read('app/globals.css').includes('#8d517a')&&read('app/globals.css').includes('#57585a'),'brand colors');
+for (const color of ['#8d517a','#57585a','#ffffff','#77c9b6']) assert.ok(read('app/globals.css').includes(color),`official brand color ${color}`);
+assert.ok(read('app/globals.css').includes('V2.4 — approved four-colour identity'),'four-colour design system');
+assert.ok(!read('components/booking-form.tsx').includes('معاينة رسالة واتساب'),'booking screen has no message preview');
+assert.ok(read('lib/supabase.ts').includes('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),'supports Supabase publishable key');
 assert.ok(fs.existsSync(path.join(root,'app/privacy/page.tsx')),'privacy route present');
 assert.ok(fs.existsSync(path.join(root,'app/terms/page.tsx')),'terms route present');
 console.log(`V2 checks passed: ${files.length} TS/TSX files, ${profiles.length} professional profiles, ${specialties.length} specialties, assets, booking, routes, colors.`);
