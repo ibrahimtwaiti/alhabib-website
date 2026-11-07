@@ -18,7 +18,7 @@ async function readLegacyCms():Promise<{store:CmsStore;etag?:string}>{
  for(let attempt=0;attempt<5;attempt++){
   try{
    const response=await get(DATA_PATH,{access:'private',useCache:false});
-   if(!response||response.statusCode===404)return {store:initial()};
+   if(!response)return {store:initial()};
    if(response.statusCode!==200||!response.stream)throw Error('Unexpected Blob response status '+response.statusCode);
    const content=await new Response(response.stream).text();
    const p=JSON.parse(content) as CmsStore;

@@ -45,13 +45,13 @@ async function ensureSchema(sql:Sql){
 }
 export async function readPostgresCms(legacyReader:()=>Promise<CmsStore>):Promise<DbSnapshot>{
  const sql=db();await ensureSchema(sql);
- let rows=await withNetworkRetry(()=>sql`SELECT version,payload FROM alhabib_cms_state WHERE id = 1`);
+ let rows=(await withNetworkRetry(()=>sql`SELECT version,payload FROM alhabib_cms_state WHERE id = 1`)) as unknown as Array<{version:string|number;payload:unknown}>;
  if(rows.length===0){
   // Do not silently create an empty admin account store if the legacy read fails.
   const legacy=await legacyReader();assertStore(legacy);
   await withNetworkRetry(()=>sql`INSERT INTO alhabib_cms_state (id,version,payload)
       VALUES (1,0,${JSON.stringify(legacy)}::jsonb) ON CONFLICT (id) DO NOTHING`);
-  rows=await withNetworkRetry(()=>sql`SELECT version,payload FROM alhabib_cms_state WHERE id = 1`);
+  rows=(await withNetworkRetry(()=>sql`SELECT version,payload FROM alhabib_cms_state WHERE id = 1`)) as unknown as Array<{version:string|number;payload:unknown}>;
  }
  if(rows.length!==1)throw Error('Postgres CMS initialization failed');
  const payload=rows[0].payload;
@@ -65,9 +65,9 @@ export async function mutatePostgresCms<T>(fn:(store:CmsStore)=>T|Promise<T>,leg
   const {store,version}=await readPostgresCms(legacyReader);
   const result=await fn(store);
   store.updated_at=new Date().toISOString();
-  const rows=await withNetworkRetry(()=>sql`UPDATE alhabib_cms_state
+  const rows=(await withNetworkRetry(()=>sql`UPDATE alhabib_cms_state
       SET payload=${JSON.stringify(store)}::jsonb,version=version+1,updated_at=now()
-      WHERE id=1 AND version=${version} RETURNING version`);
+      WHERE id=1 AND version=${version} RETURNING version`)) as unknown as Array<{version:string|number}>;
   if(rows.length===1)return result;
   await delay(Math.min(350,20*(attempt+1)));
  }
