@@ -11,7 +11,7 @@ export async function POST(req:Request){const user=await currentUser();if(!guard
  if(!/^[a-z][a-z0-9_.-]{2,39}$/.test(username)||password.length<12||password.length>128)return NextResponse.json({error:'اسم المستخدم يجب أن يكون إنجليزياً وكلمة المرور 12 حرفاً على الأقل'},{status:400});
  const permissions=Object.fromEntries(ACCESS.map(k=>[k,body.permissions?.[k]===true]));
  await mutateCms(store=>{if(store.users.some(u=>u.username===username))throw Error('EXISTS');store.users.push({id:randomUUID(),username,full_name:String(body.full_name||'مدير فرعي').slice(0,100),password_hash:hashPassword(password),role:'admin',permissions,is_active:true,session_version:1,created_at:new Date().toISOString()});
- (store.tables.activity_logs ||= []).unshift(newRow({actor_id:user.id,actor_username:user.username,table_name:'admin_users',operation:'create',affected_count:1}));});return NextResponse.json({ok:true});
+ (store.tables.activity_logs ||= []).unshift(newRow({actor_id:user!.id,actor_username:user!.username,table_name:'admin_users',operation:'create',affected_count:1}));});return NextResponse.json({ok:true});
  }catch(err){return NextResponse.json({error:String(err).includes('EXISTS')?'اسم المستخدم مستخدم بالفعل':'تعذر إنشاء الحساب'},{status:400})}}
 export async function PATCH(req:Request){const viewer=await currentUser();if(!guard(viewer)||!await validateOrigin(req))return NextResponse.json({error:'غير مصرح'},{status:403});try{
  const b=await req.json();if(b.id===viewer?.id)return NextResponse.json({error:'لا يمكن تعطيل حساب المدير الرئيسي'},{status:403});
