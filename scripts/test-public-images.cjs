@@ -24,7 +24,7 @@ const specialtyImage='https://images.example.com/approved-service.webp';
 specialty.image_url=specialtyImage;
 const logo='https://images.example.com/approved-logo.png';
 const hero='https://images.example.com/approved-hero.png';
-store.tables.site_settings.push({id:'visual-1',key:'site_visuals',is_public:true,value:{logo,hero}});
+store.tables.site_settings.push({id:'visual-1',key:'site_visuals',is_public:true,value:{logo,hero,heroFit:'contain',heroPositionX:150,heroPositionY:-20}});
 store.tables.blog_posts=[{id:'article1',title_ar:'مقال',status:'published',cover_image_url:'https://images.example.com/article.webp'},
  {id:'draft1',title_ar:'مسودة',status:'draft',cover_image_url:'https://images.example.com/draft.webp'}];
 const first=publicDataFromStore(store);
@@ -33,6 +33,9 @@ assert.notEqual(first.people.find(x=>x.nameAr===person.name_ar).photo,oldPhoto,'
 assert.equal(first.services.find(x=>x.slug===specialty.slug).image,specialtyImage);
 assert.equal(first.visuals.logo,logo);
 assert.equal(first.visuals.hero,hero);
+assert.equal(first.visuals.heroFit,'contain','hero fit is loaded from published settings');
+assert.equal(first.visuals.heroPositionX,100,'hero horizontal focal point is clamped');
+assert.equal(first.visuals.heroPositionY,0,'hero vertical focal point is clamped');
 assert.equal(first.articles.length,1,'drafts remain hidden');
 assert.equal(JSON.stringify(first).includes('password_hash'),false,'never send password hashes');
 person.is_published=false;
