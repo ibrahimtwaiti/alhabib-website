@@ -21,9 +21,10 @@ export function seedSpecialty(s:Specialty){
   return {slug:s.slug,name_ar:s.nameAr,name_en:s.nameEn,description_ar:s.introAr,
     description_en:s.introEn,image_url:s.image||null,department_scope:'both',is_published:true};
 }
-export type DbProfile={id:string;name_ar:string;name_en:string;title_ar:string;title_en:string;bio_ar:string;bio_en:string;image_url:string|null;department:string;qualifications:unknown;conditions_ar:unknown;is_published?:boolean;specialist_specialties?:unknown};
+export type DbProfile={id:string;name_ar:string;name_en:string;title_ar:string;title_en:string;bio_ar:string;bio_en:string;image_url:string|null;photo_fit?:unknown;photo_position_x?:unknown;photo_position_y?:unknown;department:string;qualifications:unknown;conditions_ar:unknown;is_published?:boolean;specialist_specialties?:unknown};
 export type DbSpecialty={id?:string;slug:string|null;name_ar:string;name_en:string;description_ar:string;description_en:string;image_url:string|null;is_published?:boolean};
 const stringArray=(x:unknown):string[]=>Array.isArray(x)?x.filter((v):v is string=>typeof v==='string'):[];
+const photoCoordinate=(value:unknown,fallback:number)=>typeof value==='number'&&Number.isFinite(value)?Math.max(0,Math.min(100,Math.round(value))):fallback;
 export function reconcileProfiles(records:DbProfile[],managed:boolean,categories:Record<string,string>={}):Profile[]{
   const team=managed?[]:[...profiles];
   for(const r of records){
@@ -34,6 +35,8 @@ export function reconcileProfiles(records:DbProfile[],managed:boolean,categories
       summaryAr:r.bio_ar||base?.summaryAr||'',summaryEn:r.bio_en||base?.summaryEn||'',
       department:r.department==='men'?'men':'women',category,
       photo:r.image_url||base?.photo||'/assets/alhabib-logo.webp',
+      photoFit:r.photo_fit==='cover'?'cover':'contain',
+      photoPositionX:photoCoordinate(r.photo_position_x,50),photoPositionY:photoCoordinate(r.photo_position_y,100),
       qualifications:stringArray(r.qualifications).length?stringArray(r.qualifications):base?.qualifications||[],
       services:stringArray(r.conditions_ar).length?stringArray(r.conditions_ar):base?.services||[]};
     const index=team.findIndex(p=>p.slug===entry.slug||p.nameAr===r.name_ar);
