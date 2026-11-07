@@ -24,6 +24,8 @@ jobs:
         run: npm run test:catalog
       - name: Image link and persistent CMS storage regression tests
         run: npm run test:image-links && npm run test:cms-store
+      - name: Transactional Postgres CMS regression test
+        run: npm run test:cms-postgres
       - name: TypeScript check
         run: npm run lint
       - name: Production build

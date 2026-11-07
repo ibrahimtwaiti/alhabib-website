@@ -8,46 +8,74 @@ export const DATA_PATH='cms/private-state-v1.json';
 export const TABLES=['specialists','specialties','specialist_specialties','blog_posts','achievements','site_settings','availability_settings','dynamic_sections','blog_categories','departments','activity_logs'] as const;
 const initial=():CmsStore=>({users:[],tables:Object.fromEntries(TABLES.map(t=>[t,[]])),updated_at:new Date().toISOString()});
 export function ensureBlob(){if(!process.env.BLOB_READ_WRITE_TOKEN)throw new Error('التخزين الخاص غير مُهيأ على الخادم.');}
-export async function readCms():Promise<{store:CmsStore;etag?:string}>{
- ensureBlob();// CMS data is mutable: bypass the Blob CDN to read the current JSON and ETag, not a cached version.
- const response=await get(DATA_PATH,{access:'private',useCache:false});
- if(!response||response.statusCode!==200)return {store:initial()};
- const s=await new Response(response.stream).text();
- const p=JSON.parse(s) as CmsStore;
- if(!Array.isArray(p.users)||!p.tables||typeof p.tables!=='object')throw new Error('تعذر قراءة بيانات الإدارة');
- return {store:p,etag:response.blob.etag||(await head(DATA_PATH)).etag};
-}
+export function cmsUsesPostgres(){return Boolean(process.env.DATABASE_URL||process.env.POSTGRES_URL)}
 export class CmsStorageError extends Error{
  constructor(public readonly code:'unavailable'|'read'|'write'|'conflict',message:string){super(message);this.name='CmsStorageError'}
 }
-function isWriteConflict(error:unknown):boolean{
- const detail=error instanceof Error?error.name+' '+error.message:String(error);
- return /BlobPreconditionFailed|BlobAlreadyExists|precondition|etag|already exists|conflict|412|409/i.test(detail);
+const delay=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
+async function readLegacyCms():Promise<{store:CmsStore;etag?:string}>{
+ ensureBlob();
+ for(let attempt=0;attempt<5;attempt++){
+  try{
+   const response=await get(DATA_PATH,{access:'private',useCache:false});
+   if(!response||response.statusCode===404)return {store:initial()};
+   if(response.statusCode!==200||!response.stream)throw Error('Unexpected Blob response status '+response.statusCode);
+   const content=await new Response(response.stream).text();
+   const p=JSON.parse(content) as CmsStore;
+   if(!Array.isArray(p.users)||!p.tables||typeof p.tables!=='object')throw Error('Legacy CMS data has an invalid structure');
+   const etag=response.blob.etag||(await head(DATA_PATH)).etag;
+   return {store:p,etag};
+  }catch(error){
+   if(attempt===4){console.error('[CMS] private Blob read exhausted',error instanceof Error?error.name:'unknown');throw new CmsStorageError('read','تعذر قراءة النسخة القديمة في Blob. لا يُنصح باستخدام Blob لتخزين بيانات الإدارة؛ اربط Neon Postgres.');}
+   await delay(180*(2**attempt));
+  }
+ }
+ throw new CmsStorageError('read','تعذر قراءة بيانات الإدارة.');
 }
-const RETRY_WAIT=[200,450,900,1600,2600,4000,5000];
+/** Read the authoritative database if configured. The legacy Blob is only an import source. */
+export async function readCms():Promise<{store:CmsStore;etag?:string}>{
+ if(cmsUsesPostgres()){
+  const {readPostgresCms}=await import('./cms-postgres');
+  try{
+   const {store,version}=await readPostgresCms(async()=>(await readLegacyCms()).store);
+   return {store,etag:`postgres:${version}`};
+  }catch(error){
+   if(error instanceof CmsStorageError)throw error;
+   console.error('[CMS] PostgreSQL read failed',error instanceof Error?error.name:'unknown');
+   throw new CmsStorageError('read','تعذر الاتصال بقاعدة بيانات المركز. حاول مرة أخرى أو راجع اتصال Neon.');
+  }
+ }
+ return readLegacyCms();
+}
+function conflict(error:unknown){const v=error instanceof Error?error.name+' '+error.message:String(error);return /BlobPreconditionFailed|BlobAlreadyExists|precondition|etag|already exists|conflict|412|409/i.test(v)}
+/** Updates are serialized with a PostgreSQL optimistic transaction. Legacy Blob fallback is temporary. */
 export async function mutateCms<T>(fn:(store:CmsStore)=>T|Promise<T>):Promise<T>{
- for(let attempt=0;attempt<=RETRY_WAIT.length;attempt++){
-  let snapshot:{store:CmsStore;etag?:string};
-  try{snapshot=await readCms()}
-  catch(error){console.error('[CMS] read failure',error instanceof Error?error.name:'unknown');throw new CmsStorageError('read','تعذر قراءة بيانات الإدارة من التخزين. يرجى التحقق من اتصال Vercel Blob.')}
-  const {store,etag}=snapshot;
+ if(cmsUsesPostgres()){
+  const {mutatePostgresCms}=await import('./cms-postgres');
+  try{return await mutatePostgresCms(fn,async()=>(await readLegacyCms()).store)}
+  catch(error){
+   if(error instanceof CmsStorageError)throw error;
+   console.error('[CMS] PostgreSQL write failed',error instanceof Error?error.name:'unknown');
+   throw new CmsStorageError('write','تعذر حفظ التغيير في قاعدة بيانات المركز. حاول مجدداً أو راجع اتصال Neon.');
+  }
+ }
+ // Compatibility only. This single-JSON-file store is not a production CMS database.
+ for(let attempt=0;attempt<8;attempt++){
+  const {store,etag}=await readLegacyCms();
   const result=await fn(store);
   store.updated_at=new Date().toISOString();
   try{
-   // Never unconditionally overwrite an existing state object; preserve admin accounts and concurrent edits.
    await put(DATA_PATH,JSON.stringify(store),{access:'private',addRandomSuffix:false,allowOverwrite:!!etag,...(etag?{ifMatch:etag}:{}),contentType:'application/json',cacheControlMaxAge:60});
    return result;
   }catch(error){
-   if(!isWriteConflict(error)){
-    console.error('[CMS] write failure',error instanceof Error?error.name:'unknown');
-    throw new CmsStorageError('write','تعذر حفظ التغييرات في التخزين الخاص. حاول مجدداً أو راجع اتصال Vercel Blob.');
+   if(!conflict(error)){
+    console.error('[CMS] legacy Blob write error',error instanceof Error?error.name:'unknown');
+    throw new CmsStorageError('write','تعذر حفظ بيانات الإدارة في Blob. يلزم ربط قاعدة Neon لتحقيق حفظ موثوق.');
    }
-   if(attempt===RETRY_WAIT.length)break;
-   // Private Blob reads may briefly observe a cached ETag after a write. Retry with spacing.
-   await new Promise(resolve=>setTimeout(resolve,RETRY_WAIT[attempt]));
+   if(attempt===7)break;
+   await delay(Math.min(3600,200*(2**attempt)));
   }
  }
- throw new CmsStorageError('conflict','لم يُحفظ التغيير بسبب تعديل متزامن أو تأخر تحديث التخزين. انتظر دقيقة ثم أعد الحفظ دون إعادة رفع الصورة.');
+ throw new CmsStorageError('conflict','استمر تعارض التخزين القديم. يجب نقل بيانات الإدارة من Blob إلى قاعدة Neon.');
 }
-
 export function newRow(value:Record<string,unknown>){return {id:randomUUID(),created_at:new Date().toISOString(),updated_at:new Date().toISOString(),...value}}

@@ -13,14 +13,16 @@
     "test:admin": "node scripts/test-admin-auth.cjs",
     "test:catalog": "node scripts/test-catalog.cjs",
     "test:image-links": "node scripts/test-image-links.cjs",
-    "test:cms-store": "node scripts/test-cms-store.cjs"
+    "test:cms-store": "node scripts/test-cms-store.cjs",
+    "test:cms-postgres": "node scripts/test-cms-postgres.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
     "next": "^15.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@vercel/blob": "^2.6.1"
+    "@vercel/blob": "^2.6.1",
+    "@neondatabase/serverless": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.4",
