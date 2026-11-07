@@ -49,6 +49,11 @@ export function publicDataFromStore(store:Pick<CmsStore,'tables'>):PublicSiteDat
  if(preferred&&typeof preferred==='object'&&!Array.isArray(preferred)){
   const value=preferred as Record<string,unknown>;
   for(const key of visualKeys)if(typeof value[key]==='string'&&value[key]&&isAllowedImageUrl(value[key]))visuals[key]=value[key];
+  if(value.heroFit==='cover'||value.heroFit==='contain')visuals.heroFit=value.heroFit;
+  for(const key of ['heroPositionX','heroPositionY'] as const){
+   const coordinate=value[key];
+   if(typeof coordinate==='number'&&Number.isFinite(coordinate))visuals[key]=Math.max(0,Math.min(100,Math.round(coordinate)));
+  }
  }
  const articles=sortBy(items(store,'blog_posts').filter(r=>r.status==='published'),'published_at',false).slice(0,20).map(r=>({
   id:text(r.id),title_ar:text(r.title_ar),title_en:text(r.title_en),excerpt_ar:text(r.excerpt_ar),excerpt_en:text(r.excerpt_en),
