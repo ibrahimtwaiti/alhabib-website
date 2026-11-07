@@ -4,6 +4,7 @@ export type Language = 'ar' | 'en';
 export type Profile = {
   slug: string; nameAr: string; nameEn: string; titleAr: string; titleEn: string;
   department: 'men' | 'women'; category: string; photo: string;
+  photoFit?:'cover'|'contain';photoPositionX?:number;photoPositionY?:number;
   summaryAr: string; summaryEn: string; qualifications: string[]; services: string[];
 };
 export const phoneDisplay = '0591009916';
