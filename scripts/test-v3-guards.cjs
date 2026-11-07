@@ -11,7 +11,7 @@ const moduleObject={exports:{}};
 vm.runInNewContext(compiled,{
  module:moduleObject,exports:moduleObject.exports,
  require:name=>name==='server-only'?{}:name==='@vercel/blob'?{}:require(name),
- process:{env},console,Date,Buffer,setTimeout
+ process:{env},console,Date,Buffer,URL,setTimeout
 },{filename:'cms-store.ts'});
 const {isV3Preview,cmsDatabaseUrl,canWriteCms,mutateCms}=moduleObject.exports;
 (async()=>{
