@@ -70,7 +70,7 @@ export const profiles: Profile[] = [
     services:['إجراء المقابلات الشخصية وتقييم الحالات وفق المسار العلاجي المناسب','التعامل مع الوسواس القهري والاكتئاب والقلق والهلع والضغوط وتنظيم المشاعر','الإرشاد الأسري في المشكلات السلوكية للأطفال والمراهقين','الدعم النفسي لمرضى السرطان والآلام المزمنة والأمراض المناعية','تعليم استراتيجيات إدارة الضغوط وتنظيم المشاعر','العلاج السلوكي المعرفي في التعامل مع الألم والأرق واضطرابات النوم','اضطرابات ما بعد الصدمة والبعد العاطفي للألم','صعوبات التكيف مع ضغوط الحياة','تطوير الثقة بالنفس وتقدير الذات وتوكيدها','استشارات أسرية وزوجية لتحسين التواصل','الإرشاد الشخصي وتطوير الذات','الإرشاد الأسري للسلوكيات لدى الأطفال والمراهقين','الخطط العلاجية السلوكية للطلبة وتطبيق المقاييس المناسبة']
   }
 ];
-export type Specialty={slug:string;nameAr:string;nameEn:string;introAr:string;introEn:string;icon:'activity'|'heart'|'brain'|'leaf'|'sparkles'|'shield';category:string};
+export type Specialty={slug:string;nameAr:string;nameEn:string;introAr:string;introEn:string;icon:'activity'|'heart'|'brain'|'leaf'|'sparkles'|'shield';category:string;image?:string};
 export const specialties: Specialty[]=[
  {slug:'physical-therapy',nameAr:'العلاج الطبيعي',nameEn:'Physical Therapy',introAr:'برامج لتحسين الحركة وتقليل الألم واستعادة الوظيفة اليومية.',introEn:'Personalized programs to improve mobility, ease pain and restore daily function.',icon:'activity',category:'physical'},
  {slug:'orthopedic-rehabilitation',nameAr:'تأهيل العظام والآلام المزمنة',nameEn:'Orthopedic & Chronic Pain',introAr:'خطط تأهيل للمفاصل والعمود الفقري وآلام الجهاز العضلي الهيكلي.',introEn:'Rehabilitation for joints, spine and musculoskeletal conditions.',icon:'shield',category:'orthopedic'},

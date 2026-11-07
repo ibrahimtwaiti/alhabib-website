@@ -1,29 +1,56 @@
-export type BookingDetails={lang:'ar'|'en';name:string;phone:string;department:'men'|'women';specialty:string;specialist:string;issue:string;date:string;time:string;soon:boolean};
-export function formatAppointmentDate(date:string,time:string,lang:'ar'|'en'='ar'){
- if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!/^\d{2}:\d{2}$/.test(time))return '';
- const [year,month,day]=date.split('-').map(Number);const [hour,minute]=time.split(':').map(Number);
- const dt=new Date(year,month-1,day,hour,minute);if(dt.getFullYear()!==year||dt.getMonth()!==month-1||dt.getDate()!==day||hour>23||minute>59)return '';
- const datePart=new Intl.DateTimeFormat(lang==='ar'?'ar-SA-u-ca-gregory-nu-latn':'en-GB',{day:'numeric',month:'long',year:'numeric'}).format(dt);
- const timePart=new Intl.DateTimeFormat(lang==='ar'?'ar-SA-u-nu-latn':'en-US',{hour:'2-digit',minute:'2-digit',hour12:true}).format(dt);
- return lang==='ar'?`${datePart} — الساعة ${timePart}`:`${datePart} — ${timePart}`;
+import type {Language} from './clinic-data';
+
+export type BookingMessageData={
+  lang:Language; name:string; phone:string; department:'men'|'women';
+  specialty?:string; specialist?:string; concern?:string;
+  timing:'soon'|'specific'; date?:string; time?:string;
+};
+/** Gregorian civil date from the date input, not a UTC timestamp. */
+export function displayDate(iso:string,lang:Language='ar'){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(iso))return '';
+  const d=new Date(Date.UTC(Number(iso.slice(0,4)),Number(iso.slice(5,7))-1,Number(iso.slice(8,10)),12));
+  if(Number.isNaN(d.getTime())||d.getUTCFullYear()!==Number(iso.slice(0,4))||d.getUTCMonth()+1!==Number(iso.slice(5,7))||d.getUTCDate()!==Number(iso.slice(8,10)))return '';
+  return new Intl.DateTimeFormat(lang==='ar'?'ar-SA-u-ca-gregory-nu-latn':'en-GB', {day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Riyadh'}).format(d);
 }
-export function buildBookingMessage(b:BookingDetails){
- const a=b.lang==='ar';const schedule=b.soon?(a?'أقرب موعد متاح (بانتظار إفادة المركز)':'Earliest available (pending clinic confirmation)'):formatAppointmentDate(b.date,b.time,b.lang);
- const issue=b.issue.trim()|| (a?'تفضيل مناقشة الحالة والتقييم مباشرة مع المركز':'Prefer to discuss the concern directly with the clinic');
- if(a)return [
- '🏥📋 *طلب حجز موعد جديد | مركز الحبيب للعلاج الطبيعي والتأهيل الطبي*','',
- `👤 *الاسم الكريم:* ${b.name.trim()}`,
- `📱 *رقم الجوال:* ${b.phone.trim()}`,
- `🏥 *القسم:* ${b.department==='women'?'قسم النساء':'قسم الرجال'}`,
- `🔍 *التخصص المطلوب:* ${b.specialty||'غير محدد'}`,
- `👩‍⚕️ *الأخصائي/الأخصائية المفضلة:* ${b.specialist||'لا يوجد تفضيل'}`,
- `💬 *تفاصيل الحالة:* ${issue}`,
- `🗓️🕒 *الموعد المقترح:* ${schedule}`,'',
- '> ⚠️ *تنبيه:* هذا الإشعار يمثل طلباً مبدئياً ولا يُعد حجزاً نهائياً. يُرجى التواصل لتأكيد الموعد واعتماده رسمياً. 📩✅'
- ].join('\n');
- return ['🏥📋 *New appointment request | Alhabib Physical Therapy & Medical Rehabilitation*','',
- `👤 *Full name:* ${b.name.trim()}`,`📱 *Mobile:* ${b.phone.trim()}`,`🏥 *Department:* ${b.department==='women'?'Women':'Men'}`,
- `🔍 *Specialty:* ${b.specialty||'Not specified'}`,`👩‍⚕️ *Preferred specialist:* ${b.specialist||'No preference'}`,
- `💬 *Concern:* ${issue}`,`🗓️🕒 *Preferred appointment:* ${schedule}`,'',
- '> ⚠️ *Notice:* This is an initial appointment request, not a confirmed booking. Please contact the patient to confirm availability. 📩✅'].join('\n');
+export function displayTime(value:string,lang:Language='ar'){
+  if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(value))return '';
+  const [hour,minute]=value.split(':').map(Number);
+  const hh=String(hour%12||12).padStart(2,'0');
+  return lang==='ar'?`${hh}:${String(minute).padStart(2,'0')} ${hour<12?'صباحاً':'مساءً'}`:`${hh}:${String(minute).padStart(2,'0')} ${hour<12?'AM':'PM'}`;
+}
+export function localTodayISO(now=new Date()){
+  // The clinic operates on Saudi local dates; avoid UTC midnight shifting the calendar date.
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+  const part=(type:string)=>parts.find(p=>p.type===type)?.value||'';
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+export function buildWhatsAppMessage(data:BookingMessageData){
+  const v=(x:string|undefined)=>x?.trim()||'';
+  const when=data.timing==='specific'&&data.date&&data.time
+    ?`${displayDate(data.date,data.lang)} — ${data.lang==='ar'?'الساعة ':''}${displayTime(data.time,data.lang)}`
+    :data.lang==='ar'?'أقرب موعد متاح — حسب تأكيد المركز':'Earliest available — subject to clinic confirmation';
+  if(data.lang==='en')return [
+    '*New appointment request | Alhabib Physical Therapy & Medical Rehabilitation Center* 🏥📋',
+    `• *Full name:* ${v(data.name)} 👤`,
+    `• *Mobile number:* ${v(data.phone)} 📱`,
+    `• *Department:* ${data.department==='women'?'Women':'Men'} 🩺`,
+    `• *Requested specialty:* ${v(data.specialty)||'Not specified'} 🔎`,
+    `• *Preferred specialist:* ${v(data.specialist)||'No preference'} 👩‍⚕️`,
+    `• *Brief concern:* ${v(data.concern)||'I prefer to discuss my concern and assessment directly with the clinic'} 💬`,
+    `• *Suggested appointment:* ${when} 🗓️🕒`,
+    '',
+    '> ⚠️ *Please note:* This is an initial appointment request, not a confirmed booking. Kindly contact me to verify availability and confirm the appointment. 📩✅'
+  ].join('\n');
+  return [
+    '*طلب حجز موعد جديد | مركز الحبيب للعلاج الطبيعي والتأهيل الطبي* 🏥📋',
+    `• *الاسم الكريم:* ${v(data.name)} 👤`,
+    `• *رقم الجوال:* ${v(data.phone)} 📱`,
+    `• *القسم:* ${data.department==='women'?'قسم النساء 👩':'قسم الرجال 👨'} 🩺`,
+    `• *التخصص المطلوب:* ${v(data.specialty)||'غير محدد'} 🔍`,
+    `• *الأخصائي/الأخصائية المفضلة:* ${v(data.specialist)||'بدون تفضيل'} 👩‍⚕️✨`,
+    `• *تفاصيل الحالة:* ${v(data.concern)||'تفضيل مناقشة الحالة والتقييم مباشرة مع المركز'} 💬`,
+    `• *الموعد المقترح:* ${when} 🗓️🕒`,
+    '',
+    '> ⚠️ *تنبيه:* هذا الإشعار يمثل طلباً مبدئياً ولا يُعد حجزاً نهائياً. يُرجى التواصل لتأكيد الموعد واعتماده رسمياً. 📩✅'
+  ].join('\n');
 }

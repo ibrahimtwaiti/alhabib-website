@@ -1,48 +1,73 @@
-# ALHABIB Rehabilitation Center — V2 staging branch
+# مركز الحبيب — الإصدار الثاني V2
 
-A bilingual public website and Supabase-based administration scaffold for Alhabib Physical Therapy & Medical Rehabilitation Center.
+مشروع Next.js / TypeScript / Tailwind / Supabase. التطوير يتم على فرع `version-2`، ولا يُدمج في `main` أو يُنشر إنتاجياً قبل مراجعة المركز.
 
-## What's new in V2
+## الجديد في V2
 
-- Updated official visual identity with the clinic-approved logo, plum `#8d517a`, gray `#57585a` and white `#ffffff`.
-- Responsive, interactive home page, modern icon treatments, improved navigation, page layout and admin branding.
-- Profiles of **10 clinic professionals**, including their approved-source photos, qualifications and clinical services transcribed from the 22-page PDF supplied by the clinic. Full professional lists remain in Arabic (their source language); English summaries/titles are provided. Review spelling, degrees, certifications, services and image authorization with clinic management before launch.
-- New public routes: `/team`, `/team/[slug]`, `/specialties`, `/specialties/[slug]`, `/about`, `/booking`, `/contact`, `/achievements`, `/blog`, `/privacy`, `/terms`.
-- Booking by WhatsApp only, default `966591009916` (`0591009916` locally). The checkbox consent gate has been removed, while a privacy notice and the fact that WhatsApp does not confirm bookings remain visible.
-- Admin content modules: editable specialist, blog, achievement and WhatsApp setting entries backed by Supabase, protected by existing RLS. Published staff entries are loaded on public pages when Supabase is configured; the clinic-provided public professional profiles are bundled as a fallback. The full CMS for all site sections remains a further development step.
-- Structured metadata, sitemap route, robots route, reduced-motion support and keyboard focus indicators.
+- الشعار الرسمي والألوان `#8d517a` و`#57585a` و`#ffffff`.
+- صفحة رئيسية وصفحات للتخصصات وملفات 10 مختصين ومختصات، اعتماداً على ملفات المركز المرفقة. يجب أن يراجع المركز النصوص والمؤهلات والصور وأذونات نشرها.
+- واجهة عربية وإنجليزية، تصميم متجاوب، أيقونات بتأثيرات ثلاثية الأبعاد، وإمكانية استبدال معظم العناصر البصرية بصور من لوحة الإدارة.
+- نموذج طلب حجز عبر واتساب فقط على الرقم `966591009916` (محلياً `0591009916`) **دون مربع موافقة إلزامي**، مع معاينة الرسالة وتنبيه الخصوصية. لا يوجد تخزين داخلي لبيانات الحجز ولا يُعتبر الإرسال حجزاً مؤكداً.
+- كتابة التاريخ بصيغة ميلادية واضحة (مثال: `16 نوفمبر 2026 — الساعة 03:30 مساءً`) بدلاً من ترتيب حقول التاريخ المعكوس.
+- لوحة إدارة للفريق والتخصصات (استيراد أولي، تعديل الصور والمحتوى، نشر/إخفاء)، المقالات والإنجازات، الصور والأيقونات والهوية العامة، الأقسام الديناميكية (بطاقات وأسئلة شائعة)، أقرب موعد، إعدادات واتساب، حسابات الإداريين وصلاحياتهم.
+- فحوص تلقائية على GitHub تشمل النصوص والملفات، رسالة الحجز والتاريخ، TypeScript، بناء Next.js، وتجربة HTTP مبدئية للصفحات.
 
-## Local setup
+## إعداد Supabase قبل تفعيل إدارة المحتوى
 
-1. Install Node.js 20+ and run `npm install`.
-2. Copy `.env.example` to `.env.local` and configure the Supabase variables and site URL.
-3. Create your Supabase project; run `supabase/schema.sql` in the Supabase SQL editor **if not already installed**. Do not reapply migrations blindly on production.
-4. Run `npm run lint` (TypeScript checking) and `npm run build`, then `npm run dev` to review the staging site.
-5. Before deployment, test RTL/LTR layouts, mobile navigation, all 10 specialist pages, department filtering, WhatsApp prefilled messages, admin login, RLS permissions, images and browser console. Verify the privacy notice and professional content with the clinic.
+1. اضبط `NEXT_PUBLIC_SUPABASE_URL` و`NEXT_PUBLIC_SUPABASE_ANON_KEY` في Vercel. لا تضف أي مفتاح `service_role` إلى متغير يبدأ بـ `NEXT_PUBLIC_`.
+2. إذا كنت قد أعددت قاعدة بيانات الإصدار الأول باستخدام `supabase/schema.sql`، **لا تشغّل الملف القديم بالكامل مرة أخرى**؛ يعرّف سياسات وجداول موجودة.
+3. تأكد أن جدول `profiles` يحتوي حساب المدير الرئيسي `super_admin`، وأن مشروع Supabase Storage يحتوي الحاوية العامة `site-media` مع سياسات رفع المديرين. الصور المرفوعة في هذه الحاوية عامة، لذا لا تضع ملفات طبية أو وثائق مراجعين فيها.
+4. إذا أردت أن يرفع مديرو المحتوى الفرعيون الصور اعتماداً على صلاحية التخصصات أو الأخصائيين، نفّذ الملف الإضافي `supabase/migrations/20261107_media_permissions.sql` مرة واحدة من Supabase SQL Editor. المدير الرئيسي يستطيع الرفع باستخدام السياسات الأصلية.
+5. **خطوة مهمة لتفعيل التحكم الكامل:** ادخل لوحة الإدارة، ثم افتح «التخصصات» واضغط **استيراد التخصصات (7)**، ثم افتح «الأخصائيون» واضغط **استيراد الفريق الرسمي (10 ملفات)**. هذه العملية لا تُكرّر المدخلات الموجودة، وتربط النشر والإخفاء بالصفوف الحقيقية في قاعدة البيانات. يتم تنفيذها مرة واحدة بواسطة `super_admin`.
 
-## Configuration
+## كيف أغيّر صورة أخصائي من حساب الأدمن؟
 
-- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`: for public availability settings and admin.
-- `NEXT_PUBLIC_SITE_URL`: deployed canonical origin, required for meaningful sitemap URLs.
-- Booking form default number is in `lib/clinic-data.ts`; the admin settings entry can be enabled for remote configuration as a follow-up integration.
+1. افتح `/admin/login` على نشر المعاينة، وسجّل دخول المدير الرئيسي أو مدير يمتلك صلاحيتي `specialists` و`media` (أو السياسة الإضافية المذكورة أعلاه).
+2. انتقل من القائمة إلى **الأخصائيون**. إذا كانت هذه أول مرة، اضغط **استيراد الفريق الرسمي** لتفعيل الإدارة الكاملة.
+3. ابحث عن اسم الأخصائي واضغط **تعديل**. ستظهر بياناته وصورته الحالية.
+4. ضمن **الصورة الشخصية للأخصائي** اضغط اختيار ملف، واختر صورة واضحة من الكمبيوتر/الجوال بصيغة JPG أو PNG أو WebP أو AVIF وبحجم أقل من 5 ميجابايت.
+5. راجع المعاينة، وتأكد من خيار **إظهار هذا الملف على الموقع**، ثم اضغط **حفظ التعديلات**. أعد تحميل صفحة الفريق أو صفحة الأخصائي العامة لرؤية الصورة الجديدة. لا حاجة لتعديل GitHub أو إعادة نشر الكود لكل تغيير صورة.
+6. يمكن إلغاء الصورة المخصصة بوضع مسار الصورة الرسمية القديمة في حقل رابط الصورة، مثال `/assets/team/hisham-hendawy.webp`، ثم الحفظ.
 
-## Important notes
+**ملاحظات:** ملف PDF الأصلي يحتوي على صورة توضيحية لبعض المختصين (مثل أبرار المزعل)، وليس بالضرورة صورة فوتوغرافية. ارفع صورة حقيقية معتمدة عندما تتوافر. لا تُحذف الصور القديمة تلقائياً من Storage لتجنب فقدان مراجع قد تستخدمها صفحات أخرى.
 
-- The website **does not store enquiries**. Visitors fill in a form on their device, open a WhatsApp link with a prepared message and then explicitly send it in WhatsApp. Medical details in the message URL should be kept brief and non-sensitive.
-- There are **no confirmed patient testimonials, medical articles or outcome metrics** in the provided materials. V2 intentionally does not fabricate them.
-- All public assets under `public/assets/team` are cropped from the clinic-supplied PDF. No stock faces or fabricated staff portraits were used.
-- Before merging this branch into `main`, complete a live Vercel preview build and validate Supabase production configuration and permissions. This branch is **not a production deployment**.
+## استبدال أيقونات التخصصات بصور
 
-## V2.1 — إدارة الصور والأيقونات من حساب الأدمن
+- ادخل إلى **التخصصات**، ثم **تعديل** على تخصص، وارفع صورة «صورة التخصص بدلاً من الأيقونة». عند نشر التعديل تظهر الصورة داخل البطاقة، وإن لم تُضف صورة يبقى الرمز التفاعلي المحسن.
+- انتقل إلى **الصور والأيقونات** لاستبدال صورة الـHero، الشعار، وأيقونات شريط الميزات/لماذا المركز. لكل عنصر زر رفع واستعادة افتراضي.
+- انتقل إلى **الأقسام الإضافية** لإنشاء بطاقات صور أو أسئلة شائعة مع إمكانية النشر والترتيب والتعديل.
 
-1. سجّل الدخول إلى `/admin/login` بحساب **Super Admin** أو أدمن لديه صلاحية `specialists` لتغيير صور الفريق، وصلاحية `settings` لتغيير صور التخصصات.
-2. من لوحة التحكم اختر **الأخصائيون**، ثم اضغط **تعديل** أمام الأخصائي. في حقل **تغيير الصورة من جهازك** اختر صورة JPG/PNG/WebP/AVIF أقل من 5MB، واضغط **حفظ**. الصورة تُرفع إلى حاوية `site-media` في Supabase Storage، ويحفظ رابطها في `specialists.image_url`. بعد نشر السجل وتحديث الصفحة تظهر الصورة في بطاقات الفريق والملف المهني. يمكن أيضاً تعديل رابط الصورة مباشرة في الحقل المخصص. إن لم تختر صورة جديدة تُحفظ الصورة الحالية.
-3. من **إعدادات الموقع**، قسم **الصور والأيقونات في الموقع**، اختر تخصصاً، ثم غيّر الأيقونة من القائمة أو ارفع صورة ذات صلة. الصورة لها أولوية العرض على الأيقونة؛ اضغط **إزالة الصورة والعودة للأيقونة** لإلغاء ذلك. يمكن تغيير صورة واجهة الرئيسية (Hero) من القسم نفسه.
-4. اضغط **حفظ تغييرات الصور والأيقونات** بعد الرفع أو التعديل؛ تحفظ الاختيارات في `site_settings` تحت المفتاح `specialty_visuals` وتُقرأ في الموقع العام. يفضل تحديث الصفحة بعد الحفظ.
-5. تحقق من تفعيل `supabase/schema.sql` وسياسات RLS والتخزين وصلاحيات `media` و`settings` و`specialists`. يحتاج الأدمن لصلاحية `media` لرفع الصور أيضاً.
+## نموذج الحجز
 
-**التاريخ:** نموذج الحجز يستخدم مدخل تاريخ قياسي باتجاه LTR، ويعرض التاريخ نصياً بصيغة اليوم ثم الشهر ثم السنة بالتقويم الميلادي، مع تنسيق الوقت بنظام 12 ساعة. قد يختلف شكل واجهة منتقي التاريخ الأصلية باختلاف المتصفح ونظام التشغيل، لكن العرض النهائي ورسالة واتساب ثابتان.
+- الحقول: القسم، التخصص (اختياري)، الأخصائي المفضل (اختياري)، نوع الموعد (أقرب موعد أو اختيار تاريخ ووقت)، الاسم، الجوال، وصف عام اختياري.
+- يعرض التاريخ الميلادي الصحيح بترتيب يوم ← شهر ← سنة، ومعاينة بالعربية والإنجليزية.
+- قسم **معاينة رسالة واتساب قبل الإرسال** يعرض الرسالة الكاملة والعناوين والرموز والتنبيه بأن الطلب غير مؤكد.
+- زر **متابعة الحجز عبر واتساب** يفتح الرقم الدولي للمركز برسالة مُعدّة؛ المراجع يضغط إرسال في واتساب. لا تحفظ قاعدة بيانات الموقع هذا النموذج.
+- يستطيع المدير الرئيسي تعديل رقم الحجز من **إعدادات الموقع**. التغييرات تظهر بعد إعادة تحميل الصفحة.
 
-**واتساب:** نص الطلب منسّق بالنجوم والإيموجي، ويذكر صراحة أن الموعد مبدئي، دون تخزين معلومات المريض في قاعدة الموقع. يجب مراجعة سياسة الخصوصية وممارسات معالجة بيانات الصحة قبل الإطلاق.
+## حسابات الإدارة
 
-**ملاحظة:** بيانات الفريق المرفقة في المصدر تعمل كبيانات عرض أولية. لتغيير الصورة من الأدمن يجب أن يوجد سجل منشور مطابق للاسم في جدول `specialists`؛ إن لم يوجد، اضغط **استيراد ملفات الفريق المعتمدة (10)** مرة واحدة من شاشة الأخصائيين، ثم اضغط تعديل على السجل وارفع الصورة الجديدة. الاستيراد لا يكرر الأسماء الموجودة بالفعل. لا تتم الكتابة تلقائياً إلى قاعدة Supabase الحية عند نشر كود GitHub.
+- المدير الرئيسي يمكنه إضافة مدير فرعي عبر بريد إلكتروني، وتخصيص الصلاحيات وتعديلها وتعطيل حسابه في قسم **حسابات المديرين**.
+- الدعوات الآمنة تتطلب في Vercel متغيراً سرياً **خادمياً فقط**: `SUPABASE_SERVICE_ROLE_KEY`، إلى جانب إعداد إرسال البريد في Supabase Auth. لا تشارك هذا المفتاح أو تعرضه في JavaScript العام.
+- دون هذا المتغير يظل تعديل صلاحيات المستخدمين الموجودين متاحاً للمدير الرئيسي، بينما تعرض دعوة حساب جديد تنبيهاً واضحاً بإكمال إعداد الخادم.
+- جميع التعديلات على الجداول محكومة أيضاً بسياسات RLS ولا تعتمد على إخفاء أزرار الواجهة وحده.
+
+## العمل محلياً والاختبارات
+
+```bash
+npm install
+cp .env.example .env.local
+npm run test:v2
+npm run test:booking
+npm run lint
+npm run build
+npm run dev
+```
+
+تم إعداد `.github/workflows/v2-checks.yml` لتشغيل فحوص البناء عند الدفع إلى `version-2`.
+
+**متطلبات ما قبل نشر الإنتاج:** فحص واجهة المعاينة على الجوال والمتصفح، تجربة رفع صورة فعلية بحساب الأدمن إلى Supabase، تجربة الاستيراد والنشر/الإخفاء من قاعدة الإنتاج، تدقيق مؤهلات وأسماء المختصين، اختبار رابط واتساب، مراجعة سياسة الخصوصية وفق متطلبات المركز، ثم اعتماد الدمج والإطلاق.
+
+## الخصوصية والمحتوى
+
+المحتوى المهني والصور مقتبسة من الملف الرسمي الذي قدّمه المركز. لا تُنسب أي مقالات أو إنجازات طبية لمختصين قبل موافقة الإدارة. من المهم عدم كتابة بيانات صحية تفصيلية في رابط واتساب، لأن الاستفسار ينتقل إلى طرف خارجي بعد ضغط المراجع على الإرسال.

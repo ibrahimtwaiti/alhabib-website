@@ -15,8 +15,12 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Source and asset smoke tests
-        run: npm run test:v2 && node scripts/test-booking.cjs
+        run: npm run test:v2
+      - name: Appointment message and date regression tests
+        run: npm run test:booking
       - name: TypeScript check
         run: npm run lint
       - name: Production build
         run: npm run build
+      - name: HTTP smoke tests for public routes
+        run: npm run smoke:http
