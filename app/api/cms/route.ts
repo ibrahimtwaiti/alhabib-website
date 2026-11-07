@@ -2,6 +2,7 @@ import {NextResponse} from 'next/server';
 import {currentUser,hasAccess,publicUser,validateOrigin} from '@/lib/admin-auth';
 import {mutateCms,readCms,newRow,TABLES,CmsStorageError,type CmsStore} from '@/lib/cms-store';
 import {isAllowedImageUrl} from '@/lib/image-urls';
+import {latestById} from '@/lib/cms-dedupe';
 export const runtime='nodejs';export const dynamic='force-dynamic';
 const tableAccess:Record<string,string>={specialists:'specialists',specialties:'specialties',specialist_specialties:'specialists',blog_posts:'blog',blog_categories:'blog',achievements:'achievements',site_settings:'settings',availability_settings:'availability',dynamic_sections:'sections',departments:'departments',activity_logs:'settings',profiles:'users'};
 const published=(t:string,r:Record<string,unknown>)=>t==='specialists'||t==='specialties'||t==='achievements'?r.is_published===true:t==='blog_posts'?r.status==='published':t==='availability_settings'?r.is_active===true:t==='dynamic_sections'?r.is_enabled===true:t==='site_settings'?r.is_public===true:t==='blog_categories'||t==='departments'?true:false;
@@ -23,6 +24,7 @@ export async function POST(req:Request){try{
  const filters=(Array.isArray(q.filters)?q.filters:[]).slice(0,10).filter(x=>typeof x.key==='string'&&/^[a-z_]{2,40}$/.test(x.key));
  if(q.action==='select'){
   const {store}=await readCms();let rows=q.table==='profiles'?store.users.map(publicUser) as unknown as Record<string,unknown>[]:[...(store.tables[q.table]||[])];
+  if(q.table==='specialists'||q.table==='specialties')rows=latestById(rows);
   if(!user){rows=rows.filter(r=>published(q.table,r))}else if(q.table==='profiles'&&user.role!=='super_admin'){rows=rows.filter(r=>r.id===user.id)}
   rows=filterRows(rows,filters);
   if(q.order&&/^[a-z_]{2,40}$/.test(q.order.key))rows.sort((a,b)=>{const left=String(a[q.order!.key]??'');const right=String(b[q.order!.key]??'');return (left<right?-1:left>right?1:0)*(q.order!.ascending?1:-1)});

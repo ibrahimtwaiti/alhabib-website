@@ -4,6 +4,7 @@
 import {profiles,specialties,type Profile,type Specialty} from './clinic-data';
 import {CATALOG_SETTING_KEY,reconcileProfiles,reconcileSpecialties,type CatalogMode,type DbProfile,type DbSpecialty} from './catalog';
 import {isAllowedImageUrl} from './image-urls';
+import {latestById} from './cms-dedupe';
 import type {CmsStore} from './cms-store';
 import type {SiteSection} from '@/components/admin-sections';
 import type {SiteVisuals} from '@/components/use-site-visuals';
@@ -23,8 +24,8 @@ export function publicDataFromStore(store:Pick<CmsStore,'tables'>):PublicSiteDat
  const settings=items(store,'site_settings').filter(r=>r.is_public===true);
  const setting=(key:string)=>settings.find(r=>r.key===key)?.value;
  const mode=(setting(CATALOG_SETTING_KEY)||{}) as CatalogMode;
- const servicesRows=sortBy(items(store,'specialties').filter(r=>r.is_published===true),'sort_order',true);
- const teamRows=sortBy(items(store,'specialists').filter(r=>r.is_published===true),'sort_order',true);
+ const servicesRows=sortBy(latestById(items(store,'specialties')).filter(r=>r.is_published===true),'sort_order',true);
+ const teamRows=sortBy(latestById(items(store,'specialists')).filter(r=>r.is_published===true),'sort_order',true);
  const categoryById:Record<string,string>={};
  for(const link of items(store,'specialist_specialties')){
   const target=servicesRows.find(s=>s.id===link.specialty_id);

@@ -17,6 +17,8 @@ assert.ok(person,'official specialist seeded');
 const oldPhoto=person.image_url;
 const publishedPhoto='https://images.example.com/approved-portrait.webp';
 person.image_url=publishedPhoto;
+// An older duplicated ID must never supersede a newer approved portrait, even if stored last.
+store.tables.specialists.push({...person,image_url:oldPhoto,updated_at:'2000-01-01T00:00:00.000Z'});
 const specialty=store.tables.specialties[0];
 const specialtyImage='https://images.example.com/approved-service.webp';
 specialty.image_url=specialtyImage;
@@ -44,4 +46,4 @@ const wrapper=fs.readFileSync(path.join(__dirname,'../components/public-site.tsx
 assert.ok(wrapper.includes('await connection()'),'public pages are server-rendered dynamically');
 assert.ok(wrapper.includes('initialData={initialData}'),'server provides approved images before hydration');
 assert.ok(fs.readFileSync(path.join(__dirname,'../components/booking-form.tsx'),'utf8').includes('people:Profile[],services:Specialty[]'));
-console.log('Public first-render image regression checks: 13 passed');
+console.log('Public first-render image and duplicate-record regression checks passed');
