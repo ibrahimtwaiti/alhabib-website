@@ -3,7 +3,8 @@ import {useCallback,useEffect,useState} from 'react';
 import {ImagePlus,RefreshCw,Save,ShieldCheck,UploadCloud,Eye,EyeOff} from 'lucide-react';
 import {createClient} from '@/lib/cms-client';
 import {profiles,specialties,type Profile,type Specialty} from '@/lib/clinic-data';
-import {builtinProfileId,profileById,seedProfile,seedSpecialty,CATALOG_SETTING_KEY,type CatalogMode,type DbProfile,type DbSpecialty} from '@/lib/catalog';
+import {builtinProfileId,profileById,CATALOG_SETTING_KEY,type CatalogMode} from '@/lib/catalog';
+import {isAllowedImageUrl} from '@/lib/image-urls';
 
 type Mode='team'|'specialties';
 type AnyRecord=Record<string,unknown> & {id?:string;name_ar?:string;slug?:string;is_published?:boolean;image_url?:string|null};
@@ -19,7 +20,7 @@ export async function uploadPublicImage(file:File,folder:string){
  const db=createClient();
  const path=`${folder}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
  const {error}=await db.storage.from('site-media').upload(path,file,{upsert:false,contentType:file.type,cacheControl:'3600'});
- if(error)throw new Error('تعذر رفع الصورة. تحقق من صلاحية إدارة الوسائط في حسابك ومن إعدادات Storage. '+error.message);
+ if(error)throw new Error('تعذر رفع الصورة إلى التخزين الخاص. '+error.message);
  return db.storage.from('site-media').getPublicUrl(path).data.publicUrl;
 }
 
@@ -39,6 +40,7 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
    db.from('site_settings').select('value').eq('key',CATALOG_SETTING_KEY).maybeSingle()
   ]);
   if(r.error)throw r.error;
+  if(s.error)throw s.error;
   setRows((r.data||[]) as AnyRecord[]);setMode((s.data?.value||{}) as CatalogMode);
   if(team){const [ss,rr]=await Promise.all([db.from('specialties').select('id,slug'),db.from('specialist_specialties').select('specialist_id,specialty_id')]);if(ss.data)setSpecialtyRows(ss.data.filter((x:{id:string;slug:string|null})=>x.slug) as {id:string;slug:string}[]);if(rr.data)setRelations(rr.data)}
  },[key]);
@@ -79,26 +81,24 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
   if(!owner)return;
   setBusy(true);setError('');setNotice('');
   try{
-   const db=createClient();
-   if(team){
-    const missingProfiles=profiles.filter(p=>!rows.some(x=>x.id===builtinProfileId(p.slug)||x.name_ar===p.nameAr)).map(seedProfile);
-    if(missingProfiles.length){const {error}=await db.from('specialists').insert(missingProfiles);if(error)throw error}
-   }else{
-    const missingSpecialties=specialties.filter(s=>!rows.some(x=>x.slug===s.slug)).map(seedSpecialty);
-    if(missingSpecialties.length){const {error}=await db.from('specialties').insert(missingSpecialties);if(error)throw error}
-   }
-   // Do not activate the database catalog before all baseline records exist.
-   const value={...mode,[module]:true};
-   const {error}=await db.from('site_settings').upsert({key:CATALOG_SETTING_KEY,value,is_public:true},{onConflict:'key'});
-   if(error)throw error;
-   await reload();setNotice(team?'تم استيراد ملفات الفريق الرسمي وتفعيل التحكم في النشر والصور.':'تم استيراد التخصصات وتفعيل التحكم في صور البطاقات والنشر.');
+   // The server imports missing records and activates the catalog as ONE atomic Blob write.
+   // This is safe to retry, and it never overwrites existing photos or edited records.
+   const response=await fetch('/api/admin/catalog-import',{
+    method:'POST',credentials:'same-origin',cache:'no-store',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({module})
+   });
+   const result=await response.json().catch(()=>({error:'تعذر قراءة رد الخادم'}));
+   if(!response.ok)throw new Error(result.error||'تعذر إتمام الاستيراد');
+   await reload();
+   const counts=`${result.addedProfiles||0} أخصائيين، ${result.addedSpecialties||0} تخصصات`;
+   setNotice(`اكتمل الاستيراد والتفعيل بنجاح. أُضيف: ${counts}. السجلات السابقة وصورها محفوظة، ويمكنك الآن التعديل والنشر.`);
   }catch(e){setError((e as Error).message)}finally{setBusy(false)}
  }
  async function save(e:React.FormEvent){
   e.preventDefault();if(!allowed)return;setBusy(true);setError('');setNotice('');
   try{
    const db=createClient();const image=file?await uploadPublicImage(file,team?'specialists':'specialties'):form.image_url.trim();
-   if(!/^\/(assets\/)|^https:\/\//.test(image)&&image)throw new Error('يجب أن يكون رابط الصورة HTTPS أو مساراً داخل الموقع');
+   if(!isAllowedImageUrl(image))throw new Error('استخدم رابط HTTPS أو مسار صورة داخل الموقع. الصور المرفوعة من جهازك تُقبل تلقائياً.');
    const payload:Record<string,unknown>=team?{
     name_ar:form.name_ar.trim(),name_en:form.name_en.trim(),title_ar:form.title_ar.trim(),title_en:form.title_en.trim(),
     bio_ar:form.bio_ar.trim(),bio_en:form.bio_en.trim(),department:form.department||'women',
@@ -140,14 +140,14 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
  }
  if(!allowed)return <div className="card p-7">ليس لديك صلاحية إدارة {team?'الأخصائيين':'التخصصات'}.</div>;
  return <div className="space-y-6">
- <div className="card p-6 flex flex-wrap gap-4 items-center justify-between"><div><h2 className="text-xl font-extrabold">{team?'فريق المركز والصور الشخصية':'صور وبطاقات التخصصات'}</h2><p className="text-sm text-slate-600 mt-2">{mode[module]?'الكتالوج متصل بقاعدة البيانات. التحكم في النشر والصور متاح.':'الملفات الرسمية موجودة في نسخة الموقع. نفّذ الاستيراد مرة واحدة لتفعيل التحكم المباشر.'}</p></div><div className="flex gap-2 flex-wrap">{owner&&!mode[module]&&<button disabled={busy} onClick={importBundled} className="button-primary"><UploadCloud size={18}/>{busy?'جارٍ الاستيراد...':team?'استيراد الفريق الرسمي (10 ملفات)':'استيراد التخصصات (7)'}</button>}<button className="button-outline !px-3" onClick={()=>setFresh(x=>x+1)}><RefreshCw size={18}/>تحديث</button></div></div>
+ <div className="card p-6 flex flex-wrap gap-4 items-center justify-between"><div><h2 className="text-xl font-extrabold">{team?'فريق المركز والصور الشخصية':'صور وبطاقات التخصصات'}</h2><p className="text-sm text-slate-600 mt-2">{mode[module]?'الكتالوج متصل بقاعدة البيانات. التحكم في النشر والصور متاح.':'الملفات الرسمية موجودة في نسخة الموقع. استورد الملفات لتفعيل الإدارة مباشرة. يمكنك إعادة الاستيراد بأمان لاستكمال أي ملفات ناقصة.'}</p></div><div className="flex gap-2 flex-wrap">{owner&&<button disabled={busy} type="button" onClick={importBundled} className="button-primary"><UploadCloud size={18}/>{busy?'جارٍ الاستيراد...':mode[module]?'فحص واستكمال الاستيراد':team?'استيراد الفريق الرسمي (10 ملفات)':'استيراد التخصصات (7)'}</button>}<button className="button-outline !px-3" onClick={()=>setFresh(x=>x+1)}><RefreshCw size={18}/>تحديث</button></div></div>
  {error&&<div role="alert" className="p-4 rounded-xl text-red-800 bg-red-50">{error}</div>}{notice&&<div role="status" className="p-4 rounded-xl text-emerald-800 bg-emerald-50">{notice}</div>}
  <div className="grid xl:grid-cols-[.85fr_1.15fr] gap-6 items-start">
  <div className="card p-6 xl:sticky xl:top-5"><h3 className="text-xl font-bold mb-4">{editing?'تعديل بيانات وصورة':'إضافة ملف جديد'}</h3><form onSubmit={save} className="space-y-4">
  {!team&&field('slug','الرابط المختصر بالإنجليزية (slug)',false,true)}
  {field('name_ar',team?'الاسم بالعربية':'اسم التخصص بالعربية',false,true)}{field('name_en','English name',false,true)}
  {team?<>{field('title_ar','المسمى الوظيفي بالعربية')}{field('title_en','English title')}{field('bio_ar','نبذة عربية',true)}{field('bio_en','English biography',true)}{field('qualifications','المؤهلات والخبرات — كل سطر مستقل',true)}{field('conditions_ar','الخدمات والحالات — كل سطر مستقل',true)}<div><label className="label">القسم</label><select className="field" value={form.department||'women'} onChange={e=>setForm(x=>({...x,department:e.target.value}))}><option value="women">النساء</option><option value="men">الرجال</option></select></div><div><label className="label">التخصص الرئيسي (للتصفية في الحجز)</label><select className="field" value={form.category||'physical'} onChange={e=>setForm(x=>({...x,category:e.target.value}))}>{specialties.map(s=><option key={s.category} value={s.category}>{s.nameAr}</option>)}</select><p className="text-xs text-slate-500 mt-1">لربط الأخصائي المضاف حديثاً بالتخصص يجب استيراد التخصصات من لوحة الإدارة أولاً.</p></div></>:<>{field('description_ar','الوصف بالعربية',true)}{field('description_en','English description',true)}</>}
- <div className="rounded-2xl border border-[#eedce9] bg-[#fbf7fa] p-4"><label className="label flex gap-2 items-center"><ImagePlus size={18}/> {team?'الصورة الشخصية للأخصائي':'صورة التخصص بدلاً من الأيقونة'}</label><p className="text-xs text-slate-600 mb-3">اختر صورة JPG/PNG/WebP/AVIF واضحة بحجم لا يتجاوز 5 ميجابايت. عند الحفظ تحل محل القديمة مع بقاء الصورة الأصلية كنسخة في المشروع.</p><input aria-label="رفع الصورة" type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="field" onChange={e=>setFile(e.target.files?.[0]||null)}/>{field('image_url','أو رابط صورة HTTPS / مسار داخلي')}<div className="mt-3 rounded-xl bg-white border border-[#eee7ed] overflow-hidden h-44 flex items-center justify-center">{(preview||form.image_url)?<img src={preview||form.image_url} alt="معاينة الصورة" className="max-h-full max-w-full object-contain"/>:<span className="text-xs text-slate-500">بدون صورة، ستظهر الأيقونة التفاعلية</span>}</div></div>
+ <div className="rounded-2xl border border-[#eedce9] bg-[#fbf7fa] p-4"><label className="label flex gap-2 items-center"><ImagePlus size={18}/> {team?'الصورة الشخصية للأخصائي':'صورة التخصص بدلاً من الأيقونة'}</label><p className="text-xs text-slate-600 mb-3">اختر صورة JPG/PNG/WebP/AVIF واضحة بحجم لا يتجاوز 5 ميجابايت. عند الحفظ تحل محل القديمة مع بقاء الصورة الأصلية كنسخة في المشروع.</p><input aria-label="رفع الصورة" type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="field" onChange={e=>setFile(e.target.files?.[0]||null)}/>{field('image_url','أو رابط صورة HTTPS / مسار داخلي (اختياري)')}<p className="text-xs text-slate-500 mt-2">عند اختيار صورة من جهازك تُستخدم تلقائياً بدلاً من الرابط الموجود، فلا تحتاج إلى حذف مسار الصورة القديمة.</p><div className="mt-3 rounded-xl bg-white border border-[#eee7ed] overflow-hidden h-44 flex items-center justify-center">{(preview||form.image_url)?<img src={preview||form.image_url} alt="معاينة الصورة" className="max-h-full max-w-full object-contain"/>:<span className="text-xs text-slate-500">بدون صورة، ستظهر الأيقونة التفاعلية</span>}</div></div>
  <label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={published} onChange={e=>setPublished(e.target.checked)}/>إظهار هذا الملف على الموقع</label>
  <div className="flex flex-wrap gap-2"><button className="button-primary" disabled={busy}><Save size={18}/>{busy?'جارٍ الحفظ...':'حفظ التعديلات'}</button><button type="button" className="button-outline" onClick={reset}>ملف جديد / إلغاء</button></div></form></div>
  <div className="card p-6"><h3 className="text-xl font-bold mb-4">{team?'الأخصائيون والأخصائيات':'التخصصات'} ({display.length})</h3><div className="grid gap-3">{display.map(item=>{

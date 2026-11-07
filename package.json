@@ -10,7 +10,8 @@
     "test:v2": "node scripts/validate-v2.cjs",
     "test:booking": "node scripts/test-booking.cjs",
     "smoke:http": "bash scripts/smoke-routes.sh",
-    "test:admin": "node scripts/test-admin-auth.cjs"
+    "test:admin": "node scripts/test-admin-auth.cjs",
+    "test:catalog": "node scripts/test-catalog.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

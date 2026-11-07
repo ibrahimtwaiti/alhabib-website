@@ -14,16 +14,16 @@ export async function readCms():Promise<{store:CmsStore;etag?:string}>{
  const s=await new Response(response.stream).text();
  const p=JSON.parse(s) as CmsStore;
  if(!Array.isArray(p.users)||!p.tables||typeof p.tables!=='object')throw new Error('تعذر قراءة بيانات الإدارة');
- return {store:p,etag:response.blob.etag};
+ return {store:p,etag:response.blob.etag||(await head(DATA_PATH)).etag};
 }
 export async function mutateCms<T>(fn:(store:CmsStore)=>T|Promise<T>):Promise<T>{
- for(let attempt=0;attempt<5;attempt++){
+ for(let attempt=0;attempt<7;attempt++){
   const {store,etag}=await readCms();const result=await fn(store);
   store.updated_at=new Date().toISOString();
   try{
    await put(DATA_PATH,JSON.stringify(store),{access:'private',addRandomSuffix:false,allowOverwrite:!!etag,...(etag?{ifMatch:etag}:{}) ,contentType:'application/json'});
    return result;
-  }catch(err){if(/precondition|already exists|conflict|412|409/i.test(String(err))&&attempt<4)continue;throw err;}
+  }catch(err){if(/precondition|already exists|conflict|412|409/i.test(String(err))&&attempt<6)continue;throw err;}
  }
  throw new Error('تعذر حفظ التغييرات بسبب تعديل متزامن. أعد المحاولة.');
 }

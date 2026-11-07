@@ -20,6 +20,8 @@ jobs:
         run: npm run test:booking
       - name: Username/password security checks
         run: npm run test:admin
+      - name: Catalog import and image URL regression checks
+        run: npm run test:catalog
       - name: TypeScript check
         run: npm run lint
       - name: Production build
