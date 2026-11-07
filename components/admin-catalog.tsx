@@ -80,8 +80,13 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
   setBusy(true);setError('');setNotice('');
   try{
    const db=createClient();
-   const missing=team?profiles.filter(p=>!rows.some(x=>x.id===builtinProfileId(p.slug)||x.name_ar===p.nameAr)).map(seedProfile):specialties.filter(s=>!rows.some(x=>x.slug===s.slug)).map(seedSpecialty);
-   if(missing.length){const {error}=await db.from(key).insert(missing);if(error)throw error}
+   if(team){
+    const missingProfiles=profiles.filter(p=>!rows.some(x=>x.id===builtinProfileId(p.slug)||x.name_ar===p.nameAr)).map(seedProfile);
+    if(missingProfiles.length){const {error}=await db.from('specialists').insert(missingProfiles);if(error)throw error}
+   }else{
+    const missingSpecialties=specialties.filter(s=>!rows.some(x=>x.slug===s.slug)).map(seedSpecialty);
+    if(missingSpecialties.length){const {error}=await db.from('specialties').insert(missingSpecialties);if(error)throw error}
+   }
    // Do not activate the database catalog before all baseline records exist.
    const value={...mode,[module]:true};
    const {error}=await db.from('site_settings').upsert({key:CATALOG_SETTING_KEY,value,is_public:true},{onConflict:'key'});
