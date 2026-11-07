@@ -13,13 +13,36 @@ const can=(p:AdminProfile,key:string)=>p.role==='super_admin'||p.permissions?.[k
 const toLines=(v:unknown)=>Array.isArray(v)?v.join('\n'):'';
 const fromLines=(s:string)=>s.split('\n').map(x=>x.trim()).filter(Boolean);
 
+/** Optimize large images in the browser before upload, without filters or color shifts. */
+async function optimizeImage(file:File):Promise<File>{
+ if(typeof createImageBitmap!=='function'||typeof document==='undefined')return file;
+ let bitmap:ImageBitmap;
+ try{bitmap=await createImageBitmap(file)}catch{throw new Error('تعذر قراءة الصورة؛ اختر ملف صورة سليمًا.')}
+ try{
+  if(bitmap.width<80||bitmap.height<80||bitmap.width>12000||bitmap.height>12000)throw new Error('يلزم صورة بأبعاد بين 80 و12000 بكسل.');
+  const edge=Math.max(bitmap.width,bitmap.height);
+  if(edge<=1800&&file.size<450*1024)return file;
+  const scale=Math.min(1,1800/edge);
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+  canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+  const ctx=canvas.getContext('2d');
+  if(!ctx)return file;
+  ctx.imageSmoothingQuality='high';
+  ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+  const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/webp',0.86));
+  if(!blob||blob.size>=file.size*0.98)return file;
+  return new File([blob],file.name.replace(/\.[^.]+$/,'')+'.webp',{type:'image/webp',lastModified:Date.now()});
+ }finally{bitmap.close()}
+}
 export async function uploadPublicImage(file:File,folder:string){
  if(file.size>5*1024*1024)throw new Error('الحد الأقصى لحجم الصورة 5 ميجابايت');
  if(!['image/jpeg','image/png','image/webp','image/avif'].includes(file.type))throw new Error('يسمح فقط بصور JPG وPNG وWebP وAVIF');
- const extension=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/avif':'avif'} as Record<string,string>)[file.type];
+ const optimized=await optimizeImage(file);
+ const extension=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/avif':'avif'} as Record<string,string>)[optimized.type];
  const db=createClient();
  const path=`${folder}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
- const {error}=await db.storage.from('site-media').upload(path,file,{upsert:false,contentType:file.type,cacheControl:'3600'});
+ const {error}=await db.storage.from('site-media').upload(path,optimized,{upsert:false,contentType:optimized.type,cacheControl:'3600'});
  if(error)throw new Error('تعذر رفع الصورة إلى التخزين الخاص. '+error.message);
  return db.storage.from('site-media').getPublicUrl(path).data.publicUrl;
 }
@@ -65,7 +88,10 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
    category:(()=>{const link=relations.find(x=>x.specialist_id===r?.id);const service=specialtyRows.find(x=>x.id===link?.specialty_id);return specialties.find(s=>s.slug===service?.slug)?.category||p?.category||'physical'})(),
    qualifications:r?toLines(r.qualifications):p?.qualifications.join('\n')||'',
    conditions_ar:r?toLines(r.conditions_ar):p?.services.join('\n')||'',
-   image_url:String(r?.image_url||p?.photo||'')
+   image_url:String(r?.image_url||p?.photo||''),
+   photo_fit:String(r?.photo_fit||p?.photoFit||'contain'),
+   photo_position_x:String(r?.photo_position_x??p?.photoPositionX??50),
+   photo_position_y:String(r?.photo_position_y??p?.photoPositionY??100)
   }:{
    id:String(r?.id||''),slug:String(r?.slug||s?.slug||''),
    name_ar:String(r?.name_ar||s?.nameAr||''),name_en:String(r?.name_en||s?.nameEn||''),
@@ -103,7 +129,9 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
     name_ar:form.name_ar.trim(),name_en:form.name_en.trim(),title_ar:form.title_ar.trim(),title_en:form.title_en.trim(),
     bio_ar:form.bio_ar.trim(),bio_en:form.bio_en.trim(),department:form.department||'women',
     qualifications:fromLines(form.qualifications||''),conditions_ar:fromLines(form.conditions_ar||''),
-    image_url:image||null,is_published:published
+    image_url:image||null,photo_fit:form.photo_fit==='cover'?'cover':'contain',
+    photo_position_x:Math.max(0,Math.min(100,Number(form.photo_position_x)||0)),
+    photo_position_y:Math.max(0,Math.min(100,Number(form.photo_position_y)||0)),is_published:published
    }:{
     slug:form.slug.trim(),name_ar:form.name_ar.trim(),name_en:form.name_en.trim(),
     description_ar:form.description_ar.trim(),description_en:form.description_en.trim(),
@@ -155,7 +183,14 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
  <details className="mt-3 rounded-lg border border-[#e7dbe4] bg-white px-3 py-2"><summary className="text-sm cursor-pointer font-semibold">اختياري: رفع صورة من الجهاز بدلاً من الرابط</summary>
  <p className="text-xs text-slate-500 my-2">JPG أو PNG أو WebP أو AVIF، حجم 5 ميجابايت كحد أقصى. عند اختيار ملف جديد تكون له الأولوية.</p>
  <input aria-label="رفع الصورة" type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="field !text-sm" onChange={e=>setFile(e.target.files?.[0]||null)}/></details>
- <div className="mt-3 rounded-xl bg-white border border-[#eee7ed] overflow-hidden h-44 flex items-center justify-center">{(preview||form.image_url)?<img src={preview||form.image_url} alt="معاينة رابط الصورة قبل الحفظ" className="max-h-full max-w-full object-contain" onError={e=>{e.currentTarget.style.opacity='0.28'}}/>:<span className="text-xs text-slate-500">لا توجد صورة مختارة. يمكن إبقاء الصورة الحالية أو وضع رابط جديد.</span>}</div>
+ {team&&<div className="mt-4 space-y-3 rounded-xl bg-white border border-[#eee7ed] p-4">
+ <h4 className="font-bold text-sm">حجم وتأطير الصورة الشخصية</h4>
+ <label className="label" htmlFor="portrait-fit">طريقة عرض الصورة</label>
+ <select className="field" id="portrait-fit" value={form.photo_fit||'contain'} onChange={e=>setForm(x=>({...x,photo_fit:e.target.value}))}><option value="contain">إظهار الصورة كاملة</option><option value="cover">ملء الإطار دون فراغات</option></select>
+ {([['photo_position_x','التمركز الأفقي'],['photo_position_y','التمركز الرأسي']] as const).map(([key,label])=><div key={key}><label htmlFor={key} className="label">{label}: {form[key]??(key==='photo_position_x'?'50':'100')}%</label><input id={key} type="range" min="0" max="100" step="1" className="w-full accent-[#8d517a]" value={form[key]??(key==='photo_position_x'?'50':'100')} onChange={e=>setForm(x=>({...x,[key]:e.target.value}))}/></div>)}
+ <p className="text-xs text-slate-500">تظهر هذه الإعدادات في بطاقات الفريق وصفحة الأخصائي، دون إضافة تأثير لوني.</p>
+ </div>}
+ <div className="mt-3 rounded-xl bg-[#f3f3f3] border border-[#eee7ed] overflow-hidden h-44 flex items-center justify-center">{(preview||form.image_url)?<img src={preview||form.image_url} alt="معاينة رابط الصورة قبل الحفظ" className="h-full w-full" style={{objectFit:team&&form.photo_fit==='cover'?'cover':'contain',objectPosition:team?(form.photo_position_x??'50')+'% '+(form.photo_position_y??'100')+'%':'center'}} onError={e=>{e.currentTarget.style.opacity='0.28'}}/>:<span className="text-xs text-slate-500">لا توجد صورة مختارة. يمكن إبقاء الصورة الحالية أو وضع رابط جديد.</span>}</div>
  </div>
  <label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={published} onChange={e=>setPublished(e.target.checked)}/>إظهار هذا الملف على الموقع</label>
  <div className="flex flex-wrap gap-2"><button className="button-primary" disabled={busy}><Save size={18}/>{busy?'جارٍ الحفظ...':'حفظ التعديلات'}</button><button type="button" className="button-outline" onClick={reset}>ملف جديد / إلغاء</button></div></form></div>
