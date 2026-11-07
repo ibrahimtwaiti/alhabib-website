@@ -3,6 +3,7 @@
  * exclusively by the private CMS publication flags; hidden records must never reappear from fallback.
  */
 import {profiles, specialties, type Profile, type Specialty} from './clinic-data';
+import {isAllowedImageUrl} from './image-urls';
 
 export const CATALOG_SETTING_KEY = 'published_catalog_mode';
 export type CatalogMode = {team?:boolean; specialties?:boolean};
@@ -34,7 +35,7 @@ export function reconcileProfiles(records:DbProfile[],managed:boolean,categories
       titleAr:r.title_ar||base?.titleAr||'',titleEn:r.title_en||base?.titleEn||'',
       summaryAr:r.bio_ar||base?.summaryAr||'',summaryEn:r.bio_en||base?.summaryEn||'',
       department:r.department==='men'?'men':'women',category,
-      photo:r.image_url||base?.photo||'/assets/alhabib-logo.webp',
+      photo:r.image_url&&isAllowedImageUrl(r.image_url)?r.image_url:base?.photo||'/assets/alhabib-logo.webp',
       photoFit:r.photo_fit==='cover'?'cover':'contain',
       photoPositionX:photoCoordinate(r.photo_position_x,50),photoPositionY:photoCoordinate(r.photo_position_y,100),
       qualifications:stringArray(r.qualifications).length?stringArray(r.qualifications):base?.qualifications||[],
