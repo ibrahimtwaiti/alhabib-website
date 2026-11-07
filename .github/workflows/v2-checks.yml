@@ -14,6 +14,9 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Runtime dependency security audit (report)
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true
       - name: Source and asset smoke tests
         run: npm run test:v2
       - name: Appointment message and date regression tests
