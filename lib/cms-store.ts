@@ -10,7 +10,7 @@ const initial=():CmsStore=>({users:[],tables:Object.fromEntries(TABLES.map(t=>[t
 export function ensureBlob(){if(!process.env.BLOB_READ_WRITE_TOKEN)throw new Error('التخزين الخاص غير مُهيأ على الخادم.');}
 /** V3 preview is deliberately read-only until a distinct Neon branch URL is configured.
  * The primary DATABASE_URL often points to production even for Preview deployments. */
-export function isV3Preview(){return process.env.VERCEL_ENV==='preview'&&process.env.VERCEL_GIT_COMMIT_REF==='version-3'}
+export function isV3Preview(){return process.env.VERCEL_ENV==='preview'&&(process.env.VERCEL_GIT_COMMIT_REF==='version-3'||process.env.V3_PREVIEW_MODE==='1')}
 export function cmsDatabaseUrl(){
  const primary=process.env.DATABASE_URL||process.env.POSTGRES_URL||'';
  return isV3Preview()&&process.env.V3_PREVIEW_DATABASE_URL||primary;
