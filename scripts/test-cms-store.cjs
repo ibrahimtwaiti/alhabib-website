@@ -3,6 +3,7 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const ts=require('typescript');
 const crypto=require('node:crypto');
+process.env.BLOB_READ_WRITE_TOKEN='local-unit-test-token';
 const source=fs.readFileSync('lib/cms-store.ts','utf8');
 const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
 let state=null,etag=null,calls=0,failOnce=false;
