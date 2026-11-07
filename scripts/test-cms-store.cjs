@@ -8,7 +8,11 @@ const source=fs.readFileSync('lib/cms-store.ts','utf8');
 const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
 let state=null,etag=null,calls=0,failOnce=false;
 const blob={
- get:async()=>state?{statusCode:200,stream:new Blob([JSON.stringify(state)]).stream(),blob:{etag}}:null,
+ get:async(_path,options)=>{
+  assert.equal(options.access,'private');
+  assert.equal(options.useCache,false,'CMS must bypass stale CDN cache');
+  return state?{statusCode:200,stream:new Blob([JSON.stringify(state)]).stream(),blob:{etag}}:null;
+ },
  head:async()=>({etag}),
  put:async(_path,body,opts)=>{
    calls++;

@@ -9,7 +9,8 @@ export const TABLES=['specialists','specialties','specialist_specialties','blog_
 const initial=():CmsStore=>({users:[],tables:Object.fromEntries(TABLES.map(t=>[t,[]])),updated_at:new Date().toISOString()});
 export function ensureBlob(){if(!process.env.BLOB_READ_WRITE_TOKEN)throw new Error('التخزين الخاص غير مُهيأ على الخادم.');}
 export async function readCms():Promise<{store:CmsStore;etag?:string}>{
- ensureBlob();const response=await get(DATA_PATH,{access:'private'});
+ ensureBlob();// CMS data is mutable: bypass the Blob CDN to read the current JSON and ETag, not a cached version.
+ const response=await get(DATA_PATH,{access:'private',useCache:false});
  if(!response||response.statusCode!==200)return {store:initial()};
  const s=await new Response(response.stream).text();
  const p=JSON.parse(s) as CmsStore;
