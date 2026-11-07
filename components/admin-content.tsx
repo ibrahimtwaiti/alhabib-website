@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {createClient} from '@/lib/supabase';
+import {createClient} from '@/lib/cms-client';
 import {profiles as bundledProfiles,whatsappNumber} from '@/lib/clinic-data';
 
 type Module='team'|'blog'|'achievements'|'settings';

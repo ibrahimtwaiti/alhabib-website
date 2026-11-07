@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useMemo,useState} from 'react';
 import {CalendarDays,CheckCircle2,MessageCircle,ShieldCheck} from 'lucide-react';
-import {createClient} from '@/lib/supabase';
+import {createClient} from '@/lib/cms-client';
 import {tr,whatsappNumber,type Language} from '@/lib/clinic-data';
 import {useClinicCatalog} from '@/components/use-clinic-catalog';
 import {buildWhatsAppMessage,displayDate,displayTime,localTodayISO} from '@/lib/booking-message';

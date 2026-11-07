@@ -9,15 +9,15 @@
     "lint": "tsc --noEmit",
     "test:v2": "node scripts/validate-v2.cjs",
     "test:booking": "node scripts/test-booking.cjs",
-    "smoke:http": "bash scripts/smoke-routes.sh"
+    "smoke:http": "bash scripts/smoke-routes.sh",
+    "test:admin": "node scripts/test-admin-auth.cjs"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.49.1",
     "lucide-react": "^0.468.0",
     "next": "^15.2.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "@vercel/blob": "^2.3.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.4",

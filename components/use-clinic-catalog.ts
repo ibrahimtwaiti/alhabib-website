@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {createClient} from '@/lib/supabase';
+import {createClient} from '@/lib/cms-client';
 import {profiles,specialties,type Profile,type Specialty} from '@/lib/clinic-data';
 import {CATALOG_SETTING_KEY,reconcileProfiles,reconcileSpecialties,type CatalogMode,type DbProfile,type DbSpecialty} from '@/lib/catalog';
 
@@ -31,7 +31,7 @@ export function useClinicCatalog(){
           setServices(rows.map(s=>{const setting=previous[s.slug];const icon=icons.includes(setting?.icon||'')?setting.icon as typeof s.icon:s.icon;
             const image=s.image||(setting?.image&&(/^https:\/\//.test(setting.image)||setting.image.startsWith('/assets/'))?setting.image:undefined);return {...s,icon,image}}));
         }
-      }catch{/* The bundled catalog provides a graceful read-only fallback when Supabase is not configured. */}
+      }catch{/* The bundled catalog provides a graceful read-only fallback when the CMS service is temporarily unreachable. */}
     })();
     return()=>{active=false};
   },[]);

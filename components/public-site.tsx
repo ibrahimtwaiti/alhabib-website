@@ -7,7 +7,7 @@ import BookingForm from '@/components/booking-form';
 import type {SiteSection} from '@/components/admin-sections';
 import {useClinicCatalog} from '@/components/use-clinic-catalog';
 import {useSiteVisuals,type SiteVisuals} from '@/components/use-site-visuals';
-import {createClient} from '@/lib/supabase';
+import {createClient} from '@/lib/cms-client';
 import {getProfile,getSpecialty,phoneDisplay,profiles,specialties,tr,type Language,type Profile,type Specialty} from '@/lib/clinic-data';
 type PageName='home'|'team'|'profile'|'specialties'|'specialty'|'about'|'contact'|'booking'|'privacy'|'terms'|'blog'|'article'|'achievements';
 type PublicArticle={id:string,title_ar:string,title_en:string,excerpt_ar:string,excerpt_en:string,body_ar:string,body_en:string,cover_image_url:string|null};

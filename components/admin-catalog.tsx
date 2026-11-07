@@ -1,7 +1,7 @@
 'use client';
 import {useCallback,useEffect,useState} from 'react';
 import {ImagePlus,RefreshCw,Save,ShieldCheck,UploadCloud,Eye,EyeOff} from 'lucide-react';
-import {createClient} from '@/lib/supabase';
+import {createClient} from '@/lib/cms-client';
 import {profiles,specialties,type Profile,type Specialty} from '@/lib/clinic-data';
 import {builtinProfileId,profileById,seedProfile,seedSpecialty,CATALOG_SETTING_KEY,type CatalogMode,type DbProfile,type DbSpecialty} from '@/lib/catalog';
 

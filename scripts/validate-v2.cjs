@@ -21,12 +21,15 @@ assert.ok(fs.existsSync(path.join(root,'public/assets/alhabib-logo.webp')),'offi
 assert.ok(!read('components/booking-form.tsx').includes('أوافق على استخدام البيانات المدخلة'),'no consent checkbox gate');
 assert.ok(read('components/booking-form.tsx').includes('wa.me/'),'WhatsApp request integration');
 assert.ok(!read('components/booking-form.tsx').includes('معاينة رسالة واتساب قبل الإرسال'),'WhatsApp preview removed');
-assert.ok(read('app/admin/login/page.tsx').includes('isSupabaseConfigured'),'admin configuration guard');
+assert.ok(read('app/admin/login/page.tsx').includes('/api/admin/login'),'username login form');
 assert.ok(fs.existsSync(path.join(root,'docs/ADMIN-ACCESS.md')),'admin access setup guide');
 for (const color of ['#8d517a','#57585a','#ffffff','#77c9b6']) assert.ok(read('app/globals.css').includes(color),`official brand color ${color}`);
 assert.ok(read('app/globals.css').includes('V2.4 — approved four-colour identity'),'four-colour design system');
 assert.ok(!read('components/booking-form.tsx').includes('معاينة رسالة واتساب'),'booking screen has no message preview');
-assert.ok(read('lib/supabase.ts').includes('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),'supports Supabase publishable key');
+assert.ok(read('lib/cms-client.ts').includes('/api/cms'),'private CMS client');
+assert.ok(read('lib/admin-auth.ts').includes('scryptSync'),'password hashing');
+assert.ok(read('app/api/admin/users/route.ts').includes('super_admin'),'sub-admin access protection');
+assert.ok(read('app/api/admin/setup/route.ts').includes('ADMIN_SETUP_CODE'),'one-time admin setup');
 assert.ok(fs.existsSync(path.join(root,'app/privacy/page.tsx')),'privacy route present');
 assert.ok(fs.existsSync(path.join(root,'app/terms/page.tsx')),'terms route present');
 console.log(`V2 checks passed: ${files.length} TS/TSX files, ${profiles.length} professional profiles, ${specialties.length} specialties, assets, booking, routes, colors.`);

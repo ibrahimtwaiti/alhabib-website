@@ -1,0 +1,3 @@
+import {NextResponse} from 'next/server';import {get} from '@vercel/blob';
+export const runtime='nodejs';export const dynamic='force-dynamic';
+export async function GET(_req:Request,{params}:{params:Promise<{path:string[]}>}){try{const {path}=await params;const id=path.join('/');if(!/^media\/[0-9a-f-]{36}\.(png|jpg|webp|avif)$/.test(id))return new NextResponse('Not found',{status:404});const result=await get(id,{access:'private'});if(!result||result.statusCode!==200)return new NextResponse('Not found',{status:404});return new NextResponse(result.stream,{headers:{'Content-Type':result.blob.contentType||'image/jpeg','Cache-Control':'public,max-age=3600','X-Content-Type-Options':'nosniff'}})}catch{return new NextResponse('Not found',{status:404})}}

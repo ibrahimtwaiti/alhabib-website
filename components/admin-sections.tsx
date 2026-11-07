@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import {ImagePlus,Plus,Save,Trash2} from 'lucide-react';
-import {createClient} from '@/lib/supabase';
+import {createClient} from '@/lib/cms-client';
 import {uploadPublicImage} from '@/components/admin-catalog';
 
 export type ContentItem={title_ar:string;title_en:string;text_ar:string;text_en:string;image_url?:string;link?:string};

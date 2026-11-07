@@ -18,6 +18,8 @@ jobs:
         run: npm run test:v2
       - name: Appointment message and date regression tests
         run: npm run test:booking
+      - name: Username/password security checks
+        run: npm run test:admin
       - name: TypeScript check
         run: npm run lint
       - name: Production build

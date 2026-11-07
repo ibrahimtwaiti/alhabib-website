@@ -1,6 +1,6 @@
 /** Catalog reconciliation and seed helpers. The bundled catalog is an offline fallback.
  * Once an authorized admin activates the database catalogs, publication is controlled
- * exclusively by Supabase RLS/published flags; hidden records must never reappear from fallback.
+ * exclusively by the private CMS publication flags; hidden records must never reappear from fallback.
  */
 import {profiles, specialties, type Profile, type Specialty} from './clinic-data';
 

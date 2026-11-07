@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import {ImagePlus,Save,RefreshCw,Trash2} from 'lucide-react';
-import {createClient} from '@/lib/supabase';
+import {createClient} from '@/lib/cms-client';
 import {uploadPublicImage} from '@/components/admin-catalog';
 import {VISUAL_KEY,visualFields,type SiteVisuals} from '@/components/use-site-visuals';
 
