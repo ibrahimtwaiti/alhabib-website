@@ -31,7 +31,7 @@ export function createClient(){return {
   updateUser:async()=>({error:new Error('غير متاح')})
  },
  storage:{from:(_bucket:string)=>({
-  upload:async(path:string,file:File,opt?:{contentType?:string})=>{const form=new FormData();form.append('file',file);form.append('path',path);try{const r=await fetch('/api/admin/upload',{method:'POST',body:form});const d=await r.json();return r.ok?{error:null,data:{path:d.path}}:{error:new Error(d.error)}}catch(e){return {error:e}}},
+  upload:async(path:string,file:File,opt?:{contentType?:string;upsert?:boolean;cacheControl?:string}):Promise<{data:{path:string}|null;error:Error|null}>=>{const form=new FormData();form.append('file',file);form.append('path',path);try{const r=await fetch('/api/admin/upload',{method:'POST',body:form});const d=await r.json();return r.ok?{error:null,data:{path:d.path}}:{error:new Error(d.error),data:null}}catch(e){return {error:e instanceof Error?e:new Error('تعذر رفع الصورة'),data:null}}},
   getPublicUrl:(path:string)=>({data:{publicUrl:`/api/media/${path.replace(/^\/+/, '')}`}})
  })}
  }}

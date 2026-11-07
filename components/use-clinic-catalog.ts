@@ -23,7 +23,7 @@ export function useClinicCatalog(){
         const mode=(settings.data?.value||{}) as CatalogMode;
         // If a catalog has been activated, its published rows become authoritative, including an empty list.
         const categoryById:Record<string,string>={};
-        for(const link of links.data||[]){const service=(specialtiesResult.data||[]).find(x=>x.id===link.specialty_id);const catalog=specialties.find(s=>s.slug===service?.slug);if(catalog)categoryById[link.specialist_id]=catalog.category;}
+        for(const link of links.data||[]){const service=(specialtiesResult.data||[]).find((x:{id:string;slug:string})=>x.id===link.specialty_id);const catalog=specialties.find(s=>s.slug===service?.slug);if(catalog)categoryById[link.specialist_id]=catalog.category;}
         if(!team.error)setPeople(reconcileProfiles((team.data||[]) as DbProfile[],mode.team===true,categoryById));
         if(!specialtiesResult.error){const rows=reconcileSpecialties((specialtiesResult.data||[]) as DbSpecialty[],mode.specialties===true);
           const previous=(legacyVisuals.data?.value as {specialties?:Record<string,{image?:string;icon?:string}>}|null)?.specialties||{};

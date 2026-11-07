@@ -40,7 +40,7 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
   ]);
   if(r.error)throw r.error;
   setRows((r.data||[]) as AnyRecord[]);setMode((s.data?.value||{}) as CatalogMode);
-  if(team){const [ss,rr]=await Promise.all([db.from('specialties').select('id,slug'),db.from('specialist_specialties').select('specialist_id,specialty_id')]);if(ss.data)setSpecialtyRows(ss.data.filter(x=>x.slug) as {id:string;slug:string}[]);if(rr.data)setRelations(rr.data)}
+  if(team){const [ss,rr]=await Promise.all([db.from('specialties').select('id,slug'),db.from('specialist_specialties').select('specialist_id,specialty_id')]);if(ss.data)setSpecialtyRows(ss.data.filter((x:{id:string;slug:string|null})=>x.slug) as {id:string;slug:string}[]);if(rr.data)setRelations(rr.data)}
  },[key]);
  useEffect(()=>{if(!allowed)return;let active=true;(async()=>{try{await reload()}catch(e){if(active)setError((e as Error).message)}})();return()=>{active=false}},[allowed,reload,fresh]);
  useEffect(()=>{if(!file){setPreview('');return}const url=URL.createObjectURL(file);setPreview(url);return()=>URL.revokeObjectURL(url)},[file]);
