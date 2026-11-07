@@ -17,6 +17,7 @@ assert.ok(person,'official specialist seeded');
 const oldPhoto=person.image_url;
 const publishedPhoto='https://images.example.com/approved-portrait.webp';
 person.image_url=publishedPhoto;
+person.photo_fit='cover';person.photo_position_x=140;person.photo_position_y=-10;
 // An older duplicated ID must never supersede a newer approved portrait, even if stored last.
 store.tables.specialists.push({...person,image_url:oldPhoto,updated_at:'2000-01-01T00:00:00.000Z'});
 const specialty=store.tables.specialties[0];
@@ -30,6 +31,9 @@ store.tables.blog_posts=[{id:'article1',title_ar:'مقال',status:'published',c
 const first=publicDataFromStore(store);
 assert.equal(first.people.find(x=>x.nameAr===person.name_ar).photo,publishedPhoto,'approved portrait resolved for first render');
 assert.notEqual(first.people.find(x=>x.nameAr===person.name_ar).photo,oldPhoto,'bundled portrait is not displayed first');
+assert.equal(first.people.find(x=>x.nameAr===person.name_ar).photoFit,'cover','per-specialist photo fit is published');
+assert.equal(first.people.find(x=>x.nameAr===person.name_ar).photoPositionX,100,'portrait X clamped');
+assert.equal(first.people.find(x=>x.nameAr===person.name_ar).photoPositionY,0,'portrait Y clamped');
 assert.equal(first.services.find(x=>x.slug===specialty.slug).image,specialtyImage);
 assert.equal(first.visuals.logo,logo);
 assert.equal(first.visuals.hero,hero);
@@ -49,4 +53,6 @@ const wrapper=fs.readFileSync(path.join(__dirname,'../components/public-site.tsx
 assert.ok(wrapper.includes('await connection()'),'public pages are server-rendered dynamically');
 assert.ok(wrapper.includes('initialData={initialData}'),'server provides approved images before hydration');
 assert.ok(fs.readFileSync(path.join(__dirname,'../components/booking-form.tsx'),'utf8').includes('people:Profile[],services:Specialty[]'));
+assert.ok(client.includes("encodeURIComponent(p.slug)"),'specialist booking link prefills slug');
+assert.ok(client.includes("photoPositionX ?? 50"),'portrait framing rendered in public pages');
 console.log('Public first-render image and duplicate-record regression checks passed');
