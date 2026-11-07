@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
 import {currentUser,hasAccess,publicUser,validateOrigin} from '@/lib/admin-auth';
-import {mutateCms,readCms,newRow,TABLES,type CmsStore} from '@/lib/cms-store';
+import {mutateCms,readCms,newRow,TABLES,CmsStorageError,type CmsStore} from '@/lib/cms-store';
+import {isAllowedImageUrl} from '@/lib/image-urls';
 export const runtime='nodejs';export const dynamic='force-dynamic';
 const tableAccess:Record<string,string>={specialists:'specialists',specialties:'specialties',specialist_specialties:'specialists',blog_posts:'blog',blog_categories:'blog',achievements:'achievements',site_settings:'settings',availability_settings:'availability',dynamic_sections:'sections',departments:'departments',activity_logs:'settings',profiles:'users'};
 const published=(t:string,r:Record<string,unknown>)=>t==='specialists'||t==='specialties'||t==='achievements'?r.is_published===true:t==='blog_posts'?r.status==='published':t==='availability_settings'?r.is_active===true:t==='dynamic_sections'?r.is_enabled===true:t==='site_settings'?r.is_public===true:t==='blog_categories'||t==='departments'?true:false;
@@ -34,6 +35,8 @@ export async function POST(req:Request){try{
  if(!user)return err('يرجى تسجيل الدخول',401);
  const payload=Array.isArray(q.payload)?q.payload:[q.payload];
  if(!payload.length||payload.length>30||payload.some(x=>!safeBody(x)))return err('البيانات غير صالحة');
+ if(payload.some(row=>{const r=safeBody(row);return r&&(['image_url','cover_image_url'].some(k=>typeof r[k]==='string'&&!isAllowedImageUrl(String(r[k]))))}))return err('رابط الصورة غير صالح؛ استخدم رابط HTTPS أو مساراً داخل الموقع.',400);
+ if(q.table==='site_settings'&&payload.some(row=>{const r=safeBody(row);const v=r?.value;return r?.key==='site_visuals'&&v&&typeof v==='object'&&!Array.isArray(v)&&Object.values(v).some(x=>typeof x==='string'&&!isAllowedImageUrl(x))}))return err('رابط الصورة غير صالح. استخدم رابط HTTPS مباشراً.',400);
  if(q.action==='update'||q.action==='delete'){if(!filters.length)return err('يلزم تحديد السجل عند التعديل أو الحذف');}
  if(q.action==='upsert'&&(!q.onConflict||!/^[a-z_]{2,40}$/.test(q.onConflict)))return err('تحديد مفتاح السجل مطلوب');
  const result=await mutateCms(store=>{
@@ -49,4 +52,8 @@ export async function POST(req:Request){try{
   }return added;
  });
  return NextResponse.json({data:result,error:null},{headers:{'Cache-Control':'no-store'}});
- }catch(e){return err('تعذر إتمام العملية. راجع إعداد التخزين أو أعد المحاولة.',503)}}
+ }catch(e){
+  console.error('[CMS] request failed',e instanceof Error?e.name:'unknown');
+  if(e instanceof CmsStorageError)return err(e.message,e.code==='conflict'?409:503);
+  return err('تعذر إتمام الطلب على الخادم. لم يتم حفظ التغييرات. أعد المحاولة بعد تحديث الصفحة.',503)
+ }}

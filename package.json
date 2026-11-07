@@ -11,7 +11,9 @@
     "test:booking": "node scripts/test-booking.cjs",
     "smoke:http": "bash scripts/smoke-routes.sh",
     "test:admin": "node scripts/test-admin-auth.cjs",
-    "test:catalog": "node scripts/test-catalog.cjs"
+    "test:catalog": "node scripts/test-catalog.cjs",
+    "test:image-links": "node scripts/test-image-links.cjs",
+    "test:cms-store": "node scripts/test-cms-store.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

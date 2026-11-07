@@ -22,6 +22,8 @@ jobs:
         run: npm run test:admin
       - name: Catalog import and image URL regression checks
         run: npm run test:catalog
+      - name: Image link and persistent CMS storage regression tests
+        run: npm run test:image-links && npm run test:cms-store
       - name: TypeScript check
         run: npm run lint
       - name: Production build

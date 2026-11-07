@@ -16,15 +16,37 @@ export async function readCms():Promise<{store:CmsStore;etag?:string}>{
  if(!Array.isArray(p.users)||!p.tables||typeof p.tables!=='object')throw new Error('تعذر قراءة بيانات الإدارة');
  return {store:p,etag:response.blob.etag||(await head(DATA_PATH)).etag};
 }
+export class CmsStorageError extends Error{
+ constructor(public readonly code:'unavailable'|'read'|'write'|'conflict',message:string){super(message);this.name='CmsStorageError'}
+}
+function isWriteConflict(error:unknown):boolean{
+ const detail=error instanceof Error?error.name+' '+error.message:String(error);
+ return /BlobPreconditionFailed|BlobAlreadyExists|precondition|etag|already exists|conflict|412|409/i.test(detail);
+}
+const RETRY_WAIT=[200,450,900,1600,2600,4000,5000];
 export async function mutateCms<T>(fn:(store:CmsStore)=>T|Promise<T>):Promise<T>{
- for(let attempt=0;attempt<7;attempt++){
-  const {store,etag}=await readCms();const result=await fn(store);
+ for(let attempt=0;attempt<=RETRY_WAIT.length;attempt++){
+  let snapshot:{store:CmsStore;etag?:string};
+  try{snapshot=await readCms()}
+  catch(error){console.error('[CMS] read failure',error instanceof Error?error.name:'unknown');throw new CmsStorageError('read','تعذر قراءة بيانات الإدارة من التخزين. يرجى التحقق من اتصال Vercel Blob.')}
+  const {store,etag}=snapshot;
+  const result=await fn(store);
   store.updated_at=new Date().toISOString();
   try{
-   await put(DATA_PATH,JSON.stringify(store),{access:'private',addRandomSuffix:false,allowOverwrite:!!etag,...(etag?{ifMatch:etag}:{}) ,contentType:'application/json'});
+   // Never unconditionally overwrite an existing state object; preserve admin accounts and concurrent edits.
+   await put(DATA_PATH,JSON.stringify(store),{access:'private',addRandomSuffix:false,allowOverwrite:!!etag,...(etag?{ifMatch:etag}:{}),contentType:'application/json',cacheControlMaxAge:60});
    return result;
-  }catch(err){if(/precondition|already exists|conflict|412|409/i.test(String(err))&&attempt<6)continue;throw err;}
+  }catch(error){
+   if(!isWriteConflict(error)){
+    console.error('[CMS] write failure',error instanceof Error?error.name:'unknown');
+    throw new CmsStorageError('write','تعذر حفظ التغييرات في التخزين الخاص. حاول مجدداً أو راجع اتصال Vercel Blob.');
+   }
+   if(attempt===RETRY_WAIT.length)break;
+   // Private Blob reads may briefly observe a cached ETag after a write. Retry with spacing.
+   await new Promise(resolve=>setTimeout(resolve,RETRY_WAIT[attempt]));
+  }
  }
- throw new Error('تعذر حفظ التغييرات بسبب تعديل متزامن. أعد المحاولة.');
+ throw new CmsStorageError('conflict','لم يُحفظ التغيير بسبب تعديل متزامن أو تأخر تحديث التخزين. انتظر دقيقة ثم أعد الحفظ دون إعادة رفع الصورة.');
 }
+
 export function newRow(value:Record<string,unknown>){return {id:randomUUID(),created_at:new Date().toISOString(),updated_at:new Date().toISOString(),...value}}
