@@ -2,7 +2,7 @@ import type {Language} from './clinic-data';
 
 export type BookingMessageData={
   lang:Language; name:string; phone:string; department:'men'|'women';
-  specialty?:string; specialist?:string; concern?:string;
+  specialty?:string; specialist?:string; concern?:string; city?:string; email?:string;
   timing:'soon'|'specific'; date?:string; time?:string;
 };
 /** Gregorian civil date from the date input, not a UTC timestamp. */
@@ -33,6 +33,8 @@ export function buildWhatsAppMessage(data:BookingMessageData){
     '*New appointment request | Alhabib Physical Therapy & Medical Rehabilitation Center* 🏥📋',
     `• *Full name:* ${v(data.name)} 👤`,
     `• *Mobile number:* ${v(data.phone)} 📱`,
+    `• *City:* ${v(data.city)||'Not provided'} 📍`,
+    `• *Email:* ${v(data.email)||'Not provided'} ✉️`,
     `• *Department:* ${data.department==='women'?'Women':'Men'} 🩺`,
     `• *Requested specialty:* ${v(data.specialty)||'Not specified'} 🔎`,
     `• *Preferred specialist:* ${v(data.specialist)||'No preference'} 👩‍⚕️`,
@@ -45,6 +47,8 @@ export function buildWhatsAppMessage(data:BookingMessageData){
     '*طلب حجز موعد جديد | مركز الحبيب للعلاج الطبيعي والتأهيل الطبي* 🏥📋',
     `• *الاسم الكريم:* ${v(data.name)} 👤`,
     `• *رقم الجوال:* ${v(data.phone)} 📱`,
+    `• *المدينة:* ${v(data.city)||'غير محددة'} 📍`,
+    `• *البريد الإلكتروني:* ${v(data.email)||'غير محدد'} ✉️`,
     `• *القسم:* ${data.department==='women'?'قسم النساء 👩':'قسم الرجال 👨'} 🩺`,
     `• *التخصص المطلوب:* ${v(data.specialty)||'غير محدد'} 🔍`,
     `• *الأخصائي/الأخصائية المفضلة:* ${v(data.specialist)||'بدون تفضيل'} 👩‍⚕️✨`,
