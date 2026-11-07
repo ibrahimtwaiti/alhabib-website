@@ -20,6 +20,9 @@ assert.ok(profiles.every(p=>fs.existsSync(path.join(root,'public',p.photo))),'al
 assert.ok(fs.existsSync(path.join(root,'public/assets/alhabib-logo.webp')),'official logo present');
 assert.ok(!read('components/booking-form.tsx').includes('أوافق على استخدام البيانات المدخلة'),'no consent checkbox gate');
 assert.ok(read('components/booking-form.tsx').includes('wa.me/'),'WhatsApp request integration');
+assert.ok(!read('components/booking-form.tsx').includes('معاينة رسالة واتساب قبل الإرسال'),'WhatsApp preview removed');
+assert.ok(read('app/admin/login/page.tsx').includes('isSupabaseConfigured'),'admin configuration guard');
+assert.ok(fs.existsSync(path.join(root,'docs/ADMIN-ACCESS.md')),'admin access setup guide');
 assert.ok(read('app/globals.css').includes('#8d517a')&&read('app/globals.css').includes('#57585a'),'brand colors');
 assert.ok(fs.existsSync(path.join(root,'app/privacy/page.tsx')),'privacy route present');
 assert.ok(fs.existsSync(path.join(root,'app/terms/page.tsx')),'terms route present');
