@@ -14,7 +14,8 @@
     "test:catalog": "node scripts/test-catalog.cjs",
     "test:image-links": "node scripts/test-image-links.cjs",
     "test:cms-store": "node scripts/test-cms-store.cjs",
-    "test:cms-postgres": "node scripts/test-cms-postgres.cjs"
+    "test:cms-postgres": "node scripts/test-cms-postgres.cjs",
+    "test:public-images": "node scripts/test-public-images.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

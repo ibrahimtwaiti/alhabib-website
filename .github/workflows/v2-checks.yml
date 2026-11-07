@@ -26,6 +26,8 @@ jobs:
         run: npm run test:image-links && npm run test:cms-store
       - name: Transactional Postgres CMS regression test
         run: npm run test:cms-postgres
+      - name: Public first-render image regression checks
+        run: npm run test:public-images
       - name: TypeScript check
         run: npm run lint
       - name: Production build
