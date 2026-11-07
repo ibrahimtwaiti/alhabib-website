@@ -1,6 +1,6 @@
 import 'server-only';
 import {neon} from '@neondatabase/serverless';
-import type {CmsStore} from './cms-store';
+import {cmsDatabaseUrl,type CmsStore} from './cms-store';
 
 /** Transactional CMS backend. Admins and content are in Postgres; pictures stay in Vercel Blob.
  * The existing private Blob JSON snapshot is imported exactly once on first connection.
@@ -11,7 +11,7 @@ let sqlClient:Sql|undefined;
 let ready:Promise<void>|undefined;
 const delay=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 function db():Sql{
- const url=process.env.DATABASE_URL||process.env.POSTGRES_URL;
+ const url=cmsDatabaseUrl();
  if(!url||!/^postgres(?:ql)?:\/\//i.test(url))throw Error('DATABASE_URL غير مُهيأ. اربط Neon PostgreSQL بمشروع Vercel.');
  return sqlClient||(sqlClient=neon(url));
 }
