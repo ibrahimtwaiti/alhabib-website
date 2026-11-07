@@ -17,7 +17,7 @@ const sql=(parts,...values)=>{
 };
 const m={exports:{}};
 const env={...process.env,DATABASE_URL:'postgresql://fake:fake@localhost/test'};
-vm.runInNewContext(compiled,{module:m,exports:m.exports,require:name=>name==='server-only'?{}:name==='@neondatabase/serverless'?{neon:()=>sql}:name==='./cms-store'?{cmsDatabaseUrl:()=>env.DATABASE_URL}:require(name),setTimeout,process:{env},console,Date,JSON}, {filename:'cms-postgres.ts'});
+vm.runInNewContext(compiled,{module:m,exports:m.exports,require:name=>name==='server-only'?{}:name==='@neondatabase/serverless'?{neon:()=>sql}:name==='./cms-store'?{cmsDatabaseUrl:()=>env.DATABASE_URL,isV3Preview:()=>false,canWriteCms:()=>true}:require(name),setTimeout,process:{env},console,Date,JSON}, {filename:'cms-postgres.ts'});
 const {readPostgresCms,mutatePostgresCms}=m.exports;
 const seed=async()=>{legacyReads++;return JSON.parse(JSON.stringify(legacy))};
 (async()=>{
