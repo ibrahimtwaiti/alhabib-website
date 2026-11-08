@@ -189,3 +189,7 @@ h1,h2,h3,h4,.section-title{color:var(--graphite)}
  .public-site .brand-bg>.absolute.rounded-full{display:none}
  .public-site .brand-bg:before{display:none}
 }
+
+/* V3 RTL: the inherited brand-bg ::before ornament extends 115px beyond the
+   unclipped bottom CTA, inflating root scrollWidth at tablet/desktop sizes. */
+.public-site .brand-bg:before{display:none}
