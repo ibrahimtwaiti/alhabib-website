@@ -16,7 +16,6 @@ for(const token of ['booking-name','booking-phone','booking-dept','booking-speci
  assert.ok(form.includes(token),'Required booking input remains '+token);
 assert.ok(form.includes('aria-invalid')&&form.includes('attempted'),'Booking validation remains');
 assert.ok(page.includes('<PublicMotion/>'),'Motion controller is active on the public website');
-assert.ok(!page.includes('<PublicMotion/>')===false);
 assert.ok(motion.includes('IntersectionObserver'),'Scroll reveal is intersection-driven');
 assert.ok(motion.includes('MutationObserver'),'Dynamically filtered team cards are animated');
 assert.ok(motion.includes("prefers-reduced-motion: reduce"),'OS reduced-motion setting is respected');
