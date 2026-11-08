@@ -26,9 +26,13 @@ specialty.image_url=specialtyImage;
 const logo='https://images.example.com/approved-logo.png';
 const hero='https://images.example.com/approved-hero.png';
 store.tables.site_settings.push({id:'visual-1',key:'site_visuals',is_public:true,value:{logo,hero,heroFit:'contain',heroPositionX:150,heroPositionY:-20}});
+store.tables.site_settings.push({id:'about-1',key:'about_content',is_public:true,value:{headingAr:'النبذة المحدّثة من لوحة الإدارة',headingEn:'Updated About heading',bodyAr:'نبذة جديدة من Neon',bodyEn:'New published copy'}});
 store.tables.blog_posts=[{id:'article1',title_ar:'مقال',status:'published',cover_image_url:'https://images.example.com/article.webp'},
  {id:'draft1',title_ar:'مسودة',status:'draft',cover_image_url:'https://images.example.com/draft.webp'}];
 const first=publicDataFromStore(store);
+assert.equal(first.about.headingAr,'النبذة المحدّثة من لوحة الإدارة','published About content available on first server render');
+assert.equal(first.about.bodyEn,'New published copy','English About copy is taken from CMS');
+assert.equal(first.about.cardTitleAr,'نهتم بالإنسان قبل الحالة','missing About fields use approved defaults');
 assert.equal(first.people.find(x=>x.nameAr===person.name_ar).photo,publishedPhoto,'approved portrait resolved for first render');
 assert.notEqual(first.people.find(x=>x.nameAr===person.name_ar).photo,oldPhoto,'bundled portrait is not displayed first');
 assert.equal(first.people.find(x=>x.nameAr===person.name_ar).photoFit,'cover','per-specialist photo fit is published');
