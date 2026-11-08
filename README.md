@@ -1,80 +1,68 @@
-# ALHABIB Rehabilitation Center Website
+# مركز الحبيب — الإصدار V2 (إدارة مستقلة عن Supabase)
 
-A bilingual (Arabic/English) Next.js starter for the Alhabib Physical Therapy & Medical Rehabilitation Center.
+موقع Next.js 15 بالعربية والإنجليزية، مع حجز مبدئي عبر واتساب على `966591009916`، و10 ملفات مهنية رسمية، و7 تخصصات، وهوية المركز بألوان `#8d517a` و`#57585a` و`#ffffff` و`#77c9b6`.
 
-## Included in this first implementation
+## تسجيل الدخول
+من `/admin/login` عبر **اسم مستخدم وكلمة مرور**. لا يوجد اعتماد على Supabase. يتم تأسيس حساب `super_admin` مرة واحدة من `/admin/setup` باستخدام رمز خادمي. يستطيع المدير الرئيسي إنشاء حسابات `admin` وتعديل صلاحياتهم وإيقافهم وتغيير كلمات مرورهم. راجع [دليل الإدارة](docs/ADMIN-ACCESS.md).
 
-- Responsive bilingual landing page with RTL/LTR switching.
-- Appointment enquiry form that prepares a WhatsApp message and opens `wa.me` (no internal patient booking storage).
-- Manual earliest-availability settings by department in the admin dashboard; the public form reads the latest active setting from Supabase.
-- Separate admin sign-in page using Supabase Auth.
-- Protected admin dashboard with role check (`super_admin` / `admin`) and a working initial specialty-create/list module.
-- Supabase schema for departments, specialties, specialists, specialty relationships, manual availability, articles, categories, achievements, settings, dynamic sections, and audit logs.
-- Row Level Security policies and a public media storage bucket.
+## تخزين البيانات
+- يستخدم مشروع Vercel مخزناً خاصاً من **Vercel Blob** لتخزين حسابات الإدارة (بصيغة تجزئة كلمات المرور)، والتخصصات والأخصائيين والمقالات والإنجازات والصور والإعدادات. الوصول إليه حصري عبر API على الخادم.
+- `BLOB_READ_WRITE_TOKEN` — متغير تضيفه Vercel تلقائياً عند توصيل Blob الخاص.
+- `AUTH_SECRET` — قيمة عشوائية بطول 32 حرفاً على الأقل لتوقيع جلسات الدخول.
+- `ADMIN_SETUP_CODE` — رمز تأسيس المدير الرئيسي، يُستخدم لأول مرة فقط.
+- `NEXT_PUBLIC_CLINIC_WHATSAPP` — رقم الحجز إن رغبت بتغييره عن القيمة الافتراضية.
 
-Some dashboard sections are intentionally shown as module placeholders in this first scaffold. The specialist, blog, achievements, settings, dynamic-section and sub-admin management screens still need their full CRUD interfaces and final integration before production launch.
+لا تضع أي قيم سرية داخل ملفات المصدر، ولا تنشر بيانات دخول افتراضية. يجب إضافة متغيرات الخادم لبيئة Preview، ثم إعادة نشر فرع `version-2`.
 
-## Requirements
+## الإدارة
+- إدارة الصور الشخصية: الأخصائيون ← تعديل ← اختر الصورة ← حفظ.
+- التخصصات: تعديل الأوصاف والنشر والصور، ويمكن استيراد المحتوى الأصلي.
+- الصور العامة: تغيير صورة الرئيسية والشعار والعناصر الأخرى.
+- المديرون: إنشاء مستخدم وكلمة مرور لكل أدمن فرعي، مع صلاحيات خاصة بالمحتوى.
+- الحجز: رسالة واتساب منسقة بلا معاينة إجبارية ولا تخزين تفاصيل المرضى بالموقع.
 
-- Node.js 20 or later
-- A Supabase project
-- A domain and hosting account (Vercel is a suggested option)
+## فحص النسخة
+```bash
+npm install
+npm run test:v2
+npm run test:booking
+npm run lint
+npm run build
+npm run smoke:http
+```
 
-## Setup
+**مهم:** لا يتم دمج الفرع في `main` أو نشر V2 على النطاق الإنتاجي دون اختبار حساب المدير الحقيقي وإضافة صورة/مقال والتأكد من ظهور التحديثات على معاينة Vercel.
 
-1. Install dependencies:
+## إصلاح الاستيراد ورفع الصور (V2)
+- اختر «استيراد الفريق الرسمي» أو «استيراد التخصصات». العملية واحدة وآمنة لإعادة المحاولة، وتحفظ الصور والبيانات المعدلة سابقاً. استيراد الفريق يستورد التخصصات ذات الصلة ويربطها بالأخصائيين آلياً.
+- إذا كان الاستيراد نُفّذ جزئياً سابقاً، اضغط «فحص واستكمال الاستيراد». السجلات الموجودة لا تتغير.
+- صورة الأخصائي: من «الأخصائيون» اختر «تعديل» ثم اختر ملفاً من الجهاز واضغط «حفظ التعديلات». **لا يلزم مسح رابط الصورة القديمة**، فملف الجهاز له الأولوية.
+- تُحفظ الصور الجديدة في Vercel Blob وتُعرض بواسطة مسار `/api/media/media/...`، ويُقبل المسار تلقائياً عند الحفظ.
+- إذا استمر فشل الاستيراد، راجع صلاحيات المدير الرئيسي وإعداد BLOB_READ_WRITE_TOKEN في Vercel؛ تظهر الآن رسالة من API تصف مكان الخلل.
 
-   ```bash
-   npm install
-   ```
+## تغيير الصور بروابط HTTPS — V2
+- من لوحة الإدارة ← «الأخصائيون» أو «التخصصات» ← «تعديل»، ألصق رابطاً مباشراً للصورة في حقل الرابط واضغط «حفظ التعديلات». لا حاجة للرفع من الجهاز.
+- لتغيير الشعار، صورة الرئيسية، أو الأيقونات: «الصور والأيقونات» ← ضع الرابط في العنصر المطلوب ← «حفظ الرابط».
+- للمقالات والإنجازات والأقسام الإضافية: حقل رابط صورة مباشرة بجانب المحتوى.
+- تأكد أن الرابط يفتح **الصورة نفسها** في المتصفح ويبدأ بـ HTTPS. روابط صفحات المشاركة العادية ليست روابط صور مباشرة. يجب أن تبقى الصور متاحة على الاستضافة الخارجية، واستخدم صوراً مصرحاً بنشرها فقط.
+- إن تعارض تحديث بيانات Vercel Blob، سيعيد النظام المحاولة بفواصل زمنية ويعطي رسالة محددة بدلاً من التنبيه العام. لا تحفظ أسراراً أو تفاصيل مرضى في روابط الصور.
 
-2. Create a Supabase project.
-3. Open Supabase SQL Editor and run `supabase/schema.sql` once.
-4. In Supabase Authentication, create your first admin user (email/password).
-5. Copy that user's UUID and run the bootstrap statement at the bottom of `supabase/schema.sql`, replacing `AUTH_USER_UUID` and the name. Set the role to `super_admin`.
-6. Copy `.env.example` to `.env.local` and set:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `NEXT_PUBLIC_CLINIC_WHATSAPP` (international format, digits only, e.g. country code + mobile number)
-7. Run locally:
+### إصلاح خطأ حفظ الصور وإعدادات Blob
+تم استخدام `get(..., { access: 'private', useCache: false })` مع مكتبة Vercel Blob إصدار `2.6.1` على الأقل عند قراءة بيانات إدارة المركز. هذا يتجاوز بيانات CDN القديمة، ويحافظ على حماية التحديثات المتزامنة بواسطة ETag. يوصى بتغيير الصور بواسطة رابط HTTPS مباشر من لوحة التحكم. لا تضع رموز أو بيانات حساسة داخل روابط الصور.
 
-   ```bash
-   npm run dev
-   ```
+## تحديث موثوق لبيانات الإدارة: Neon PostgreSQL (بدون Supabase)
+النسخة الجديدة تفصل بيانات **حسابات المديرين والتخصصات والأخصائيين والإعدادات** عن تخزين الصور. تستخدم PostgreSQL للبيانات المتغيرة، ويبقى Vercel Blob مخصصاً للصور فقط.
 
-8. Open `http://localhost:3000` for the public site and `http://localhost:3000/admin/login` for the admin portal.
+### خطوات التفعيل
+1. من Vercel → المشروع `alhabib-website` → Storage / Marketplace، اربط **Neon Postgres** بمشروعك وحدد بيئة Preview التي تستضيف فرع `version-2`.
+2. تحقق من إضافة متغير البيئة الخادمي `DATABASE_URL` أو `POSTGRES_URL` تلقائياً؛ لا تشارك قيمته مع أحد ولا تضفه إلى GitHub.
+3. أعد نشر فرع `version-2`. أول طلب بعد الاتصال ينشئ جدول `alhabib_cms_state` ويستورد نسخة Vercel Blob الحالية مرة واحدة، بما فيها المستخدمون وتجزئات كلمات المرور والصور والإعدادات والمقالات. **لا تعِد تأسيس الأدمن ولا تحذف مخزن Blob القديم**.
+4. بعد تسجيل الدخول افتح `/api/admin/storage-health` وتأكد من `backend: postgres` و`ready: true`، ثم اختبر تعديل رابط صورة لأخصائي والتأكد من ظهورها على الموقع.
+5. لا تعتمد الإصدار للإنتاج حتى تتحقق من بيانات الفريق وصلاحيات الأدمن في PostgreSQL. احتفظ بمخزن Blob القديم كنسخة أمان إلى حين التأكد من نجاح الترحيل.
 
-## Admin permissions
+**ملاحظة:** إذا لم تتصل قاعدة Neon، يعمل التخزين القديم مؤقتاً فقط، ولا يعدّ وضعاً إنتاجياً موثوقاً لتعديلات الإدارة. لا تُستخدم Supabase في هذا النظام.
 
-- `super_admin` has all permissions.
-- `admin` receives explicitly assigned boolean keys in `profiles.permissions`, for example:
+### منع ظهور الصور القديمة بعد تحديث الصفحة
+تقرأ الصفحات العامة التخصصات والأخصائيين والشعار والصور المعتمدة من قاعدة Neon على الخادم قبل إظهار الصفحة. لم تعد تعتمد على صورة افتراضية ثم تبديلها بعد نصف ثانية في المتصفح. تُعرَض بيانات الإصدار المعتمد مباشرة وتظل الصور المنشورة بحسب إعدادات الأدمن؛ الملفات المضمّنة في المستودع تُستخدم فقط في حالة عدم تفعيل إدارة البيانات أو في بيئة اختبار غير مهيأة. يمكن اختبار سلوك أول عرض باستخدام `npm run test:public-images`.
 
-  ```json
-  {
-    "specialties": true,
-    "specialists": true,
-    "blog": true,
-    "achievements": true,
-    "availability": true,
-    "settings": false,
-    "sections": false,
-    "media": true
-  }
-  ```
-
-Create the first super-admin profile manually. Do not expose the Supabase service-role key in the browser. Sub-admin account provisioning should be implemented through a trusted server route or Supabase Edge Function using a server-only service-role secret.
-
-## Important launch checklist
-
-- Replace all placeholder copy and sample specialties with the clinic-approved content.
-- Add the actual team profiles, credentials, experience, specialties and department assignment.
-- Configure the clinic WhatsApp number.
-- Enter approved earliest-availability text for each applicable department/specialty/specialist.
-- Upload the official logo and approved clinic photographs.
-- Complete the remaining CRUD screens and role/permission management.
-- Review privacy notice, consent language, data retention and Saudi PDPL compliance with the clinic's responsible privacy/legal owner.
-- Configure backups, domain, production environment variables, monitoring and deployment access under the clinic's ownership.
-
-## Notes about WhatsApp enquiries
-
-The browser constructs the message locally and opens WhatsApp. The site does not save the form or claim that an appointment has been booked. A staff member must confirm availability with the visitor in WhatsApp. Do not include sensitive medical records or attachments in the URL-based message.
+عند وجود سجلّين قديمين بنفس معرّف الأخصائي، يعرض الموقع ولوحة الإدارة أحدث سجل وفق `updated_at`، من دون حذف أي بيانات قديمة تلقائياً. بهذا لا يعود ترتيب النسخ المتكررة مؤثراً في الصورة المعتمدة.

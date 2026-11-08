@@ -1,0 +1,23 @@
+/* Execute actual TypeScript booking formatter under Node 20 without extra runtime deps. */
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const Module=require('node:module');
+const ts=require('typescript');
+const file=path.join(__dirname,'../lib/booking-message.ts');
+const code=ts.transpileModule(fs.readFileSync(file,'utf8'),{fileName:file,compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS}}).outputText;
+const mod=new Module(file,module);mod.filename=file;mod.paths=module.paths;mod._compile(code,file);
+const {displayDate,displayTime,localTodayISO,buildWhatsAppMessage}=mod.exports;
+assert.equal(displayDate('2026-11-16','ar'),'16 نوفمبر 2026');
+assert.equal(displayDate('2026-02-31','ar'),'');
+assert.equal(displayTime('15:30','ar'),'03:30 مساءً');
+assert.equal(displayTime('08:05','ar'),'08:05 صباحاً');
+assert.equal(displayTime('25:30','ar'),'');
+assert.equal(localTodayISO(new Date('2026-11-06T23:50:00Z')),'2026-11-07');
+const message=buildWhatsAppMessage({lang:'ar',name:'F MO ABAS',phone:'0538023390',department:'women',specialist:'ريده الحبيب',timing:'specific',date:'2026-11-16',time:'15:30'});
+for(const snippet of ['*طلب حجز موعد جديد | مركز الحبيب','F MO ABAS','0538023390','قسم النساء','غير محدد','ريده الحبيب','تفضيل مناقشة الحالة','16 نوفمبر 2026 — الساعة 03:30 مساءً','لا يُعد حجزاً نهائياً'])assert.ok(message.includes(snippet),`Missing ${snippet}`);
+assert.ok(!message.includes('I consent'));
+const english=buildWhatsAppMessage({lang:'en',name:'Jane',phone:'0500000000',department:'men',timing:'soon'});
+assert.match(english,/not a confirmed booking/i);
+assert.doesNotMatch(message,/المدينة:|البريد الإلكتروني:/,'WhatsApp request does not include removed fields');
+console.log('Booking formatter: 12 checks passed');

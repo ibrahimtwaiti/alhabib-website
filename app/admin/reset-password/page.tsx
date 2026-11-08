@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export default function PasswordHelp(){return <main dir="rtl" className="min-h-screen grid place-items-center p-6"><div className="card p-8 max-w-lg"><h1 className="text-2xl font-bold">تغيير كلمة المرور</h1><p className="mt-4 leading-8">حسابات المديرين الفرعيين: يستطيع المدير الرئيسي تغيير كلمة المرور من «حسابات المديرين». ولحساب المدير الرئيسي، استخدم إجراء الاسترداد الآمن الموضح في دليل الإدارة؛ لا توجد إعادة ضبط عامة عبر البريد.</p><Link href="/admin/login" className="btn mt-6">العودة للدخول</Link></div></main>}
