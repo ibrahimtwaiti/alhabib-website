@@ -181,3 +181,11 @@ h1,h2,h3,h4,.section-title{color:var(--graphite)}
  .public-site .header .container>div:last-child>button{padding:8px}
  .public-site .hero h1{font-size:clamp(30px,8.3vw,39px);line-height:1.36;overflow-wrap:anywhere}
 }
+
+/* Decorative circles extending to negative RTL inline coordinates caused the
+   document to report excess scroll width on 360px screens. Hide only ornaments. */
+@media(max-width:640px){
+ .public-site .hero-shape{display:none}
+ .public-site .brand-bg>.absolute.rounded-full{display:none}
+ .public-site .brand-bg:before{display:none}
+}
