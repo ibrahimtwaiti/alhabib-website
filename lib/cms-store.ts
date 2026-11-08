@@ -5,10 +5,29 @@ import {randomUUID} from 'node:crypto';
 export type CmsUser={id:string;username:string;full_name:string;password_hash:string;role:'super_admin'|'admin';permissions:Record<string,boolean>;is_active:boolean;session_version:number;failed_attempts?:number;locked_until?:number;created_at:string};
 export type CmsStore={users:CmsUser[];tables:Record<string,Record<string,unknown>[]>;updated_at:string};
 export const DATA_PATH='cms/private-state-v1.json';
-export const TABLES=['specialists','specialties','specialist_specialties','blog_posts','achievements','site_settings','availability_settings','dynamic_sections','blog_categories','departments','activity_logs'] as const;
+export const TABLES=['specialists','specialties','specialist_specialties','blog_posts','achievements','site_settings','availability_settings','dynamic_sections','blog_categories','departments','activity_logs','content_revisions'] as const;
 const initial=():CmsStore=>({users:[],tables:Object.fromEntries(TABLES.map(t=>[t,[]])),updated_at:new Date().toISOString()});
 export function ensureBlob(){if(!process.env.BLOB_READ_WRITE_TOKEN)throw new Error('التخزين الخاص غير مُهيأ على الخادم.');}
-export function cmsUsesPostgres(){return Boolean(process.env.DATABASE_URL||process.env.POSTGRES_URL)}
+/** V3 preview is deliberately read-only until a distinct Neon branch URL is configured.
+ * The primary DATABASE_URL often points to production even for Preview deployments. */
+export function isV3Preview(){return process.env.VERCEL_ENV==='preview'&&(process.env.VERCEL_GIT_COMMIT_REF==='version-3'||process.env.V3_PREVIEW_MODE==='1')}
+export function cmsDatabaseUrl(){
+ const primary=process.env.DATABASE_URL||process.env.POSTGRES_URL||'';
+ return isV3Preview()&&process.env.V3_PREVIEW_DATABASE_URL||primary;
+}
+export function canWriteCms(){
+ if(!isV3Preview())return true;
+ const isolated=process.env.V3_PREVIEW_DATABASE_URL;
+ const primary=process.env.DATABASE_URL||process.env.POSTGRES_URL;
+ if(!isolated||!/^postgres(?:ql)?:\/\//i.test(isolated))return false;
+ try{
+  const branch=new URL(isolated);
+  if(!primary)return true;
+  const live=new URL(primary);
+  return branch.hostname!==live.hostname||branch.pathname!==live.pathname;
+ }catch{return false}
+}
+export function cmsUsesPostgres(){return Boolean(cmsDatabaseUrl())}
 export class CmsStorageError extends Error{
  constructor(public readonly code:'unavailable'|'read'|'write'|'conflict',message:string){super(message);this.name='CmsStorageError'}
 }
@@ -50,6 +69,7 @@ export async function readCms():Promise<{store:CmsStore;etag?:string}>{
 function conflict(error:unknown){const v=error instanceof Error?error.name+' '+error.message:String(error);return /BlobPreconditionFailed|BlobAlreadyExists|precondition|etag|already exists|conflict|412|409/i.test(v)}
 /** Updates are serialized with a PostgreSQL optimistic transaction. Legacy Blob fallback is temporary. */
 export async function mutateCms<T>(fn:(store:CmsStore)=>T|Promise<T>):Promise<T>{
+ if(!canWriteCms())throw new CmsStorageError('write','معاينة V3 للقراءة فقط: يجب ربط V3_PREVIEW_DATABASE_URL بفرع Neon مستقل قبل تعديل أي محتوى.');
  if(cmsUsesPostgres()){
   const {mutatePostgresCms}=await import('./cms-postgres');
   try{return await mutatePostgresCms(fn,async()=>(await readLegacyCms()).store)}

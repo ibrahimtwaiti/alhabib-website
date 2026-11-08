@@ -1,6 +1,6 @@
 import 'server-only';
 import {neon} from '@neondatabase/serverless';
-import type {CmsStore} from './cms-store';
+import {cmsDatabaseUrl,canWriteCms,isV3Preview,type CmsStore} from './cms-store';
 
 /** Transactional CMS backend. Admins and content are in Postgres; pictures stay in Vercel Blob.
  * The existing private Blob JSON snapshot is imported exactly once on first connection.
@@ -11,7 +11,7 @@ let sqlClient:Sql|undefined;
 let ready:Promise<void>|undefined;
 const delay=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 function db():Sql{
- const url=process.env.DATABASE_URL||process.env.POSTGRES_URL;
+ const url=cmsDatabaseUrl();
  if(!url||!/^postgres(?:ql)?:\/\//i.test(url))throw Error('DATABASE_URL غير مُهيأ. اربط Neon PostgreSQL بمشروع Vercel.');
  return sqlClient||(sqlClient=neon(url));
 }
@@ -44,9 +44,11 @@ async function ensureSchema(sql:Sql){
  await ready;
 }
 export async function readPostgresCms(legacyReader:()=>Promise<CmsStore>):Promise<DbSnapshot>{
- const sql=db();await ensureSchema(sql);
+ const sql=db();const readOnlyPreview=isV3Preview()&&!canWriteCms();
+ if(!readOnlyPreview)await ensureSchema(sql);
  let rows=(await withNetworkRetry(()=>sql`SELECT version,payload FROM alhabib_cms_state WHERE id = 1`)) as unknown as Array<{version:string|number;payload:unknown}>;
  if(rows.length===0){
+  if(readOnlyPreview)throw Error('V3 shared preview is read-only and cannot initialize CMS data');
   // Do not silently create an empty admin account store if the legacy read fails.
   const legacy=await legacyReader();assertStore(legacy);
   await withNetworkRetry(()=>sql`INSERT INTO alhabib_cms_state (id,version,payload)

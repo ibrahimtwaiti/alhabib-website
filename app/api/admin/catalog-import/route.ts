@@ -1,6 +1,6 @@
 import {NextResponse} from 'next/server';
 import {currentUser,validateOrigin} from '@/lib/admin-auth';
-import {mutateCms} from '@/lib/cms-store';
+import {mutateCms,newRow} from '@/lib/cms-store';
 import {importClinicCatalog,type CatalogSection} from '@/lib/catalog-import';
 export const runtime='nodejs';export const dynamic='force-dynamic';
 const responseHeaders={'Cache-Control':'no-store'};
@@ -13,7 +13,7 @@ export async function POST(request:Request){
  try{const body=await request.json();if(body?.module!=='team'&&body?.module!=='specialties')throw new Error();module=body.module}
  catch{return NextResponse.json({error:'نوع الاستيراد غير صالح'},{status:400,headers:responseHeaders})}
  try{
-  const result=await mutateCms(store=>importClinicCatalog(store,module));
+  const result=await mutateCms(store=>{const output=importClinicCatalog(store,module);(store.tables.activity_logs ||= []).unshift(newRow({actor_id:user.id,actor_username:user.username,table_name:module,operation:'catalog_import',affected_count:output.addedProfiles+output.addedSpecialties}));return output});
   return NextResponse.json({ok:true,...result},{headers:responseHeaders});
  }catch(error){
   console.error('catalog-import failed:',error instanceof Error?error.name:'unknown');

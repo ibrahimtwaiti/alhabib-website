@@ -2,7 +2,10 @@
 import {useEffect,useState} from 'react';
 import {createClient} from '@/lib/cms-client';
 export const VISUAL_KEY='site_visuals';
-export type SiteVisuals=Partial<Record<'logo'|'hero'|'feature_team'|'feature_specialties'|'feature_booking'|'feature_care'|'about_personal'|'about_team'|'about_whatsapp',string>>;
+export type SiteVisuals=Partial<Record<'logo'|'hero'|'feature_team'|'feature_specialties'|'feature_booking'|'feature_care'|'about_personal'|'about_team'|'about_whatsapp',string>> & {
+ /** Hero crop controls are stored with the public site settings. */
+ heroFit?:'cover'|'contain';heroPositionX?:number;heroPositionY?:number;
+};
 export const visualFields=[
  ['logo','شعار المركز في الهيدر والفوتر'],
  ['hero','الصورة الرئيسية الكبيرة'],

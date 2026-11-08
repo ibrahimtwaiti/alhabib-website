@@ -19,4 +19,5 @@ for(const snippet of ['*طلب حجز موعد جديد | مركز الحبيب'
 assert.ok(!message.includes('I consent'));
 const english=buildWhatsAppMessage({lang:'en',name:'Jane',phone:'0500000000',department:'men',timing:'soon'});
 assert.match(english,/not a confirmed booking/i);
+assert.doesNotMatch(message,/المدينة:|البريد الإلكتروني:/,'WhatsApp request does not include removed fields');
 console.log('Booking formatter: 12 checks passed');

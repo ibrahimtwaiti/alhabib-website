@@ -4,7 +4,7 @@ const ts=require('typescript');
 const code=ts.transpileModule(fs.readFileSync('lib/image-urls.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
 const m={exports:{}};new Function('module','exports',code)(m,m.exports);
 const {isAllowedImageUrl}=m.exports;
-const good=['',' https://images.example.com/physio.webp ','https://cdn.example.com/image?id=7','/assets/team/heba-alhabib.webp','/api/media/media/123e4567-e89b-12d3-a456-426614174000.png'];
+const good=['',' https://images.example.com/physio.webp ','https://cdn.example.com/image?id=7','/assets/team/heba-alhabib.webp','/api/media/media/123e4567-e89b-12d3-a456-426614174000.png','/api/media/v3-preview/media/123e4567-e89b-12d3-a456-426614174000.webp'];
 const bad=['http://example.com/photo.jpg','javascript:alert(1)','data:image/svg+xml,a','blob:https://example.com/123','file:///private.png','/api/admin/users','/api/media/private','../assets/photo.jpg','/assets/../secrets','/assets//foo.png','https://user:pass@example.com/img.jpg','https://localhost/photo.jpg'];
 for(const x of good)assert.equal(isAllowedImageUrl(x),true,x);
 for(const x of bad)assert.equal(isAllowedImageUrl(x),false,x);
