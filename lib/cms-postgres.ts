@@ -48,6 +48,8 @@ export async function readPostgresCms(legacyReader:()=>Promise<CmsStore>):Promis
  if(!readOnlyPreview)await ensureSchema(sql);
  let rows=(await withNetworkRetry(()=>sql`SELECT version,payload FROM alhabib_cms_state WHERE id = 1`)) as unknown as Array<{version:string|number;payload:unknown}>;
  if(rows.length===0){
+  // Never reset a migrated production CMS or silently replace missing data with an old Blob copy.
+  if(process.env.VERCEL_ENV==='production'&&process.env.ALHABIB_PRIMARY_DATABASE_URL)throw Error('Dedicated production CMS has not been migrated; refusing empty initialization');
   if(readOnlyPreview)throw Error('V3 shared preview is read-only and cannot initialize CMS data');
   // Do not silently create an empty admin account store if the legacy read fails.
   const legacy=await legacyReader();assertStore(legacy);
