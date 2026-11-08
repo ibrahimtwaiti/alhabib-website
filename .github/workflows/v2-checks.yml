@@ -39,3 +39,30 @@ jobs:
         run: npm run build
       - name: HTTP smoke tests for public routes
         run: npm run smoke:http
+
+  browser:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium and its system libraries
+        run: npx playwright install --with-deps chromium
+      - name: Build for local browser acceptance tests
+        run: npm run build
+      - name: Chromium acceptance tests
+        run: npm run test:browser
+      - name: Store browser failure traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-v3-failures
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
