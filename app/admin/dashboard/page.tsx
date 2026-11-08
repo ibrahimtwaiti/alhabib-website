@@ -5,6 +5,7 @@ import AdminContent from '@/components/admin-content';
 import AdminCatalog from '@/components/admin-catalog';
 import AdminVisuals from '@/components/admin-visuals';
 import AdminAbout from '@/components/admin-about';
+import AdminSocialLinks from '@/components/admin-social-links';
 import AdminSections from '@/components/admin-sections';
 import AdminUsers from '@/components/admin-users';
 import AdminAudit from '@/components/admin-audit';
@@ -39,5 +40,6 @@ export default function Dashboard(){const router=useRouter();const [loading,setL
  {section!=='overview'&&section!=='specialties'&&section!=='availability'&&section!=='visuals'&&section!=='about'&&section!=='sections'&&section!=='users'&&section!=='audit'&&!['team','blog','achievements','settings'].includes(section)&&<div className="card p-7"><div className="flex gap-3 items-center"><Building2 className="text-[#8d517a]"/><h2 className="font-bold text-lg">وحدة {nav.find(n=>n[0]===section)?.[1]}</h2></div><p className="text-slate-500 mt-3 leading-7">هذه الوحدة مدرجة في هيكل لوحة الإدارة. استكمال واجهات إدارتها وربط عملياتها بقاعدة البيانات جزء من مرحلة التطوير التالية.</p></div>}
  {section==='team'&&<AdminCatalog key="team" module="team" profile={profile}/>}
  {(['blog','achievements','settings'] as string[]).includes(section)&&<AdminContent key={section} module={section as 'blog'|'achievements'|'settings'} profile={profile}/>}
+ {section==='settings'&&<AdminSocialLinks profile={profile}/>}
  <div className="md:hidden fixed bottom-3 left-3 right-3 bg-[#57585a] text-white rounded-2xl p-2 flex gap-2 overflow-x-auto shadow-xl z-40" aria-label="أقسام الإدارة">{visibleNav.map(([id,label,Icon])=><button key={id} onClick={()=>setSection(id)} className={`p-2 shrink-0 rounded-lg flex flex-col items-center text-[10px] gap-1 ${section===id?'bg-white/20':''}`}><Icon size={18}/>{label}</button>)}</div>
  </section></div></main>}
