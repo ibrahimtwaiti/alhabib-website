@@ -30,6 +30,8 @@ jobs:
         run: npm run test:cms-postgres
       - name: CMS write/delete validation and authorization regression tests
         run: npm run test:cms-mutations
+      - name: Dedicated production Neon migration and cutover protection checks
+        run: npm run test:neon-cutover
       - name: Public first-render image regression checks
         run: npm run test:public-images
       - name: V3 database and upload isolation checks

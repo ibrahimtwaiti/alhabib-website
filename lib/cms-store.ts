@@ -13,9 +13,12 @@ export function ensureBlob(){if(!process.env.BLOB_READ_WRITE_TOKEN)throw new Err
 export function isV3Preview(){return process.env.VERCEL_ENV==='preview'}
 export function cmsDatabaseUrl(){
  const primary=process.env.DATABASE_URL||process.env.POSTGRES_URL||'';
- return isV3Preview()&&process.env.V3_PREVIEW_DATABASE_URL||primary;
+ const dedicatedProduction=process.env.VERCEL_ENV==='production'?process.env.ALHABIB_PRIMARY_DATABASE_URL||'':'';
+ return isV3Preview()&&process.env.V3_PREVIEW_DATABASE_URL||dedicatedProduction||primary;
 }
 export function canWriteCms(){
+ // Temporary write freeze used to verify a consistent snapshot before Neon cutover.
+ if(process.env.VERCEL_ENV==='production'&&process.env.ALHABIB_CMS_READ_ONLY==='1')return false;
  if(!isV3Preview())return true;
  const isolated=process.env.V3_PREVIEW_DATABASE_URL;
  const primary=process.env.DATABASE_URL||process.env.POSTGRES_URL;
@@ -57,6 +60,10 @@ export async function readCms():Promise<{store:CmsStore;etag?:string}>{
   const {readPostgresCms}=await import('./cms-postgres');
   try{
    const {store,version}=await readPostgresCms(async()=>(await readLegacyCms()).store);
+   if(process.env.VERCEL_ENV==='production'&&process.env.ALHABIB_NEXT_DATABASE_URL&&!process.env.ALHABIB_PRIMARY_DATABASE_URL){
+    try{const {mirrorCmsToNeon}=await import('./cms-migration');await mirrorCmsToNeon(store,version)}
+    catch(error){console.error('[CMS migration] shadow read failed',error instanceof Error?error.name:'unknown')}
+   }
    return {store,etag:`postgres:${version}`};
   }catch(error){
    if(error instanceof CmsStorageError)throw error;
@@ -69,10 +76,21 @@ export async function readCms():Promise<{store:CmsStore;etag?:string}>{
 function conflict(error:unknown){const v=error instanceof Error?error.name+' '+error.message:String(error);return /BlobPreconditionFailed|BlobAlreadyExists|precondition|etag|already exists|conflict|412|409/i.test(v)}
 /** Updates are serialized with a PostgreSQL optimistic transaction. Legacy Blob fallback is temporary. */
 export async function mutateCms<T>(fn:(store:CmsStore)=>T|Promise<T>):Promise<T>{
- if(!canWriteCms())throw new CmsStorageError('write','معاينة V3 للقراءة فقط: يجب ربط V3_PREVIEW_DATABASE_URL بفرع Neon مستقل قبل تعديل أي محتوى.');
+ if(!canWriteCms())throw new CmsStorageError('write',process.env.VERCEL_ENV==='production'?'تحرير المحتوى متوقف مؤقتاً أثناء نقل البيانات إلى قاعدة Neon الجديدة. لم يتم تغيير السجل.':'معاينة V3 للقراءة فقط: يجب ربط V3_PREVIEW_DATABASE_URL بفرع Neon مستقل قبل تعديل أي محتوى.');
  if(cmsUsesPostgres()){
   const {mutatePostgresCms}=await import('./cms-postgres');
-  try{return await mutatePostgresCms(fn,async()=>(await readLegacyCms()).store)}
+  try{
+   const result=await mutatePostgresCms(fn,async()=>(await readLegacyCms()).store);
+   if(process.env.VERCEL_ENV==='production'&&process.env.ALHABIB_NEXT_DATABASE_URL&&!process.env.ALHABIB_PRIMARY_DATABASE_URL){
+    try{
+     const {readPostgresCms}=await import('./cms-postgres');
+     const {mirrorCmsToNeon}=await import('./cms-migration');
+     const snapshot=await readPostgresCms(async()=>(await readLegacyCms()).store);
+     await mirrorCmsToNeon(snapshot.store,snapshot.version);
+    }catch(error){console.error('[CMS migration] shadow write failed',error instanceof Error?error.name:'unknown')}
+   }
+   return result;
+  }
   catch(error){
    if(error instanceof CmsStorageError)throw error;
    console.error('[CMS] PostgreSQL write failed',error instanceof Error?error.name:'unknown');
