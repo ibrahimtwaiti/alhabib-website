@@ -30,8 +30,14 @@ test('layout does not horizontally overflow on key devices',async({page})=>{
   await page.setViewportSize({width,height:860});
   await page.goto('/');
   await expect(page.locator('h1').first()).toBeVisible();
-  const metrics=await page.evaluate(()=>({doc:document.documentElement.scrollWidth,viewport:window.innerWidth}));
-  expect(metrics.doc, 'horizontal overflow at '+width+'px').toBeLessThanOrEqual(metrics.viewport+2);
+  const metrics=await page.evaluate(()=>{
+   const doc=document.documentElement.scrollWidth,viewport=window.innerWidth;
+   const culprits=[...document.querySelectorAll('body *')].map(n=>{
+    const box=n.getBoundingClientRect();return {tag:n.tagName,cls:String(n.className||'').slice(0,90),right:Math.round(box.right),left:Math.round(box.left)};
+   }).filter(x=>x.right>viewport+2||x.left< -2).slice(0,12);
+   return {doc,viewport,culprits};
+  });
+  expect(metrics.doc,'horizontal overflow at '+width+'px '+JSON.stringify(metrics.culprits)).toBeLessThanOrEqual(metrics.viewport+2);
  }
 });
 
