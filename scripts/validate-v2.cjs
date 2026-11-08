@@ -26,7 +26,8 @@ assert.ok(fs.existsSync(path.join(root,'docs/ADMIN-ACCESS.md')),'admin access se
 for (const color of ['#8d517a','#57585a','#ffffff','#77c9b6']) assert.ok(read('app/globals.css').includes(color),`official brand color ${color}`);
 assert.ok(read('app/globals.css').includes('V2.4 — approved four-colour identity'),'four-colour design system');
 const bookingSource=read('components/booking-form.tsx');
-if(bookingSource.includes('معاينة رسالة واتساب'))assert.ok(bookingSource.includes('<details className="booking-preview'), 'V3 appointment preview must be an optional disclosure');
+assert.ok(!bookingSource.includes('معاينة رسالة واتساب'),'V3 hides WhatsApp message preview');
+for(const removed of ['booking-city','booking-email','booking-preview'])assert.ok(!bookingSource.includes(removed),`${removed} removed from V3 booking form`);
 assert.ok(read('lib/cms-client.ts').includes('/api/cms'),'private CMS client');
 assert.ok(read('lib/admin-auth.ts').includes('scryptSync'),'password hashing');
 assert.ok(read('app/api/admin/users/route.ts').includes('super_admin'),'sub-admin access protection');
