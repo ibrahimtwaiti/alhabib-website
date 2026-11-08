@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
 import {currentUser,validateOrigin} from '@/lib/admin-auth';
 import {mutateCms,newRow} from '@/lib/cms-store';
+import {ABOUT_CONTENT_KEY} from '@/lib/about-content';
 export const runtime='nodejs';export const dynamic='force-dynamic';
 const headers={'Cache-Control':'no-store'};
 const editorialTables=new Set(['specialists','specialties','blog_posts','achievements','site_settings','availability_settings','dynamic_sections']);
@@ -24,7 +25,7 @@ export async function POST(req:Request){
    if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot))throw Error('REVISION_CORRUPT');
    const saved=snapshot as Record<string,unknown>;
    if(typeof saved.id!=='string'||!saved.id)throw Error('REVISION_CORRUPT');
-   if(table==='site_settings'&&saved.key!=='site_visuals')throw Error('REVISION_NOT_ALLOWED');
+   if(table==='site_settings'&&saved.key!=='site_visuals'&&saved.key!==ABOUT_CONTENT_KEY)throw Error('REVISION_NOT_ALLOWED');
    const rows=store.tables[table] ||= [];
    const key=table==='site_settings'?'key':'id';
    const current=rows.find(r=>r[key]===saved[key]);
