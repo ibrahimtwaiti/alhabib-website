@@ -16,7 +16,7 @@ export async function POST(req:Request){try{
  if(!await validateOrigin(req))return err('طلب غير موثوق',403);
  const raw=await req.text();
  if(raw.length>524288)return err('الطلب كبير جداً',413);
- const q=JSON.parse(raw) as Query;
+ let q:Query;try{q=JSON.parse(raw) as Query}catch{return err('تنسيق الطلب غير صالح',400)}
  if(!q||typeof q!=='object')return err('طلب غير صالح');
  if(!TABLES.includes(q.table as typeof TABLES[number])&&q.table!=='profiles')return err('جدول غير معروف');
  if(!['select','insert','update','delete','upsert'].includes(q.action))return err('عملية غير صالحة');
@@ -26,7 +26,10 @@ export async function POST(req:Request){try{
  if(q.table==='profiles'&&q.action!=='select')return err('استخدم صفحة إدارة الحسابات',403);
  if((q.table==='activity_logs'||q.table==='content_revisions')&&user?.role!=='super_admin')return err('غير مصرح',403);
  if(q.table==='content_revisions'&&q.action!=='select')return err('سجل النسخ السابقة للقراءة فقط',403);
- const filters=(Array.isArray(q.filters)?q.filters:[]).slice(0,10).filter(x=>typeof x.key==='string'&&/^[a-z_]{2,40}$/.test(x.key));
+ if(q.filters!==undefined&&!Array.isArray(q.filters))return err('شروط البحث غير صالحة');
+ const suppliedFilters=Array.isArray(q.filters)?q.filters:[];
+ if(suppliedFilters.length>10||suppliedFilters.some(f=>!f||typeof f!=='object'||typeof f.key!=='string'||!/^[a-z_]{2,40}$/.test(f.key)||!Object.prototype.hasOwnProperty.call(f,'value')||f.value===null||typeof f.value==='object'))return err('شروط البحث غير صالحة');
+ const filters=suppliedFilters as Filter[];
  if(q.action==='select'){
   const {store}=await readCms();let rows=q.table==='profiles'?store.users.map(publicUser) as unknown as Record<string,unknown>[]:[...(store.tables[q.table]||[])];
   if(q.table==='specialists'||q.table==='specialties')rows=latestById(rows);
@@ -40,8 +43,10 @@ export async function POST(req:Request){try{
   return NextResponse.json({data:q.head?null:rows,error:null,count:q.head?count:null},{headers:{'Cache-Control':'no-store'}});
  }
  if(!user)return err('يرجى تسجيل الدخول',401);
- const payload=Array.isArray(q.payload)?q.payload:[q.payload];
- if(!payload.length||payload.length>30||payload.some(x=>!safeBody(x)))return err('البيانات غير صالحة');
+ // DELETE only needs a validated record filter; requiring a body made all admin deletions fail.
+ const needsPayload=q.action!=='delete';
+ const payload=needsPayload?(Array.isArray(q.payload)?q.payload:[q.payload]):[];
+ if(needsPayload&&(!payload.length||payload.length>30||payload.some(x=>!safeBody(x))||(q.action==='update'&&payload.length!==1)))return err('البيانات غير صالحة');
  if(payload.some(row=>{const r=safeBody(row);return r&&(['image_url','cover_image_url'].some(k=>typeof r[k]==='string'&&!isAllowedImageUrl(String(r[k]))))}))return err('رابط الصورة غير صالح؛ استخدم رابط HTTPS أو مساراً داخل الموقع.',400);
  if(q.table==='site_settings'&&payload.some(row=>{
   const r=safeBody(row);const v=r?.value;
