@@ -168,3 +168,16 @@ h1,h2,h3,h4,.section-title{color:var(--graphite)}
  .public-site .hero-photo,.public-site .float-pill,.public-site .button-primary:hover:after{animation:none!important}
  .public-site .hero-photo img.hero-image,.public-site .profile-card img,.public-site .specialty-card img{transform:none!important;transition:none!important}
 }
+
+/* V3 small-screen fixes: branding and hero copy must never force horizontal scroll. */
+@media(max-width:480px){
+ .public-site .header>.container,.public-site .header .container{gap:8px;min-width:0}
+ .public-site .header .container>a:first-child{min-width:0;flex:1 1 auto;gap:7px}
+ .public-site .header .container>a:first-child>img{width:38px;height:51px;flex-shrink:0}
+ .public-site .header .container>a:first-child>div{min-width:0}
+ .public-site .header .container>a:first-child>div>div:first-child{font-size:clamp(14px,4vw,17px);white-space:nowrap}
+ .public-site .header .container>a:first-child>div>div:last-child{display:none}
+ .public-site .header .container>div:last-child{flex-shrink:0;gap:4px}
+ .public-site .header .container>div:last-child>button{padding:8px}
+ .public-site .hero h1{font-size:clamp(30px,8.3vw,39px);line-height:1.36;overflow-wrap:anywhere}
+}
