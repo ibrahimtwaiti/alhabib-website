@@ -8,9 +8,9 @@ export const DATA_PATH='cms/private-state-v1.json';
 export const TABLES=['specialists','specialties','specialist_specialties','blog_posts','achievements','site_settings','availability_settings','dynamic_sections','blog_categories','departments','activity_logs','content_revisions'] as const;
 const initial=():CmsStore=>({users:[],tables:Object.fromEntries(TABLES.map(t=>[t,[]])),updated_at:new Date().toISOString()});
 export function ensureBlob(){if(!process.env.BLOB_READ_WRITE_TOKEN)throw new Error('التخزين الخاص غير مُهيأ على الخادم.');}
-/** V3 preview is deliberately read-only until a distinct Neon branch URL is configured.
- * The primary DATABASE_URL often points to production even for Preview deployments. */
-export function isV3Preview(){return process.env.VERCEL_ENV==='preview'&&(process.env.VERCEL_GIT_COMMIT_REF==='version-3'||process.env.V3_PREVIEW_MODE==='1')}
+/** Every Vercel preview is read-only until an isolated Neon branch URL is configured.
+ * Branch-name checks were unsafe: a hotfix/PR preview could otherwise write to production. */
+export function isV3Preview(){return process.env.VERCEL_ENV==='preview'}
 export function cmsDatabaseUrl(){
  const primary=process.env.DATABASE_URL||process.env.POSTGRES_URL||'';
  return isV3Preview()&&process.env.V3_PREVIEW_DATABASE_URL||primary;
