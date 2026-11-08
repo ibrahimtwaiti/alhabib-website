@@ -70,7 +70,7 @@ export default function AdminVisuals({profile}:{profile:Profile}){
  if(!allowed)return <div className="card p-6">تحتاج إلى صلاحية إعدادات الموقع لتغيير الصور العامة.</div>;
  return <div className="space-y-5">
   <div className="card p-6"><h2 className="text-xl font-bold">الهوية البصرية والصور والأيقونات — روابط مباشرة</h2>
-  <p className="text-sm mt-2 text-slate-600">ضع رابط HTTPS مباشر لأي صورة ثم احفظه لتغيير الشعار والصورة الرئيسية والأيقونات. لا يحتاج تغيير الرابط إلى رفع ملف من الجهاز.</p>
+  <p className="text-sm mt-2 text-slate-600">ارفع الصورة من جهازك أو ضع رابط HTTPS مباشرًا. لن تُعرض الصورة القديمة أثناء تحميل المعاينة الجديدة، وستُحفظ الصورة ضمن مسار مستقل للإصدار V3.</p>
   <button type="button" className="button-outline mt-4 !p-2" onClick={()=>void reload().catch(e=>setError((e as Error).message))}><RefreshCw size={17}/>تحديث البيانات</button></div>
   {error&&<div role="alert" className="p-4 rounded-xl bg-red-50 text-red-700">{error}</div>}
   {notice&&<div role="status" className="p-4 rounded-xl bg-green-50 text-green-800">{notice}</div>}
@@ -92,7 +92,7 @@ export default function AdminVisuals({profile}:{profile:Profile}){
     <p className="text-[11px] mt-2 text-slate-500">رابط مباشر لصورة عامة، وليس رابط صفحة مشاركة.</p>
     <div className="flex flex-wrap items-center gap-2 mt-3"><button type="button" disabled={!!busy} className="button-primary !px-3 !py-2 !min-h-[38px]" onClick={()=>void saveLink(key)}><Save size={15}/>{busy===key?'جارٍ الحفظ':'حفظ الرابط'}</button>
      <button type="button" disabled={!!busy||(!visuals[key]&&!drafts[key])} className="button-outline !px-3 !py-2 !min-h-[38px]" onClick={()=>void clear(key)}><Trash2 size={14}/>افتراضي</button></div>
-    <details className="mt-4 text-xs text-slate-500"><summary className="cursor-pointer">اختياري: رفع صورة من الجهاز</summary>
+    <details className="mt-4 text-xs text-slate-500"><summary className="cursor-pointer">رفع صورة من الجهاز</summary>
      <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="field !text-xs mt-2" disabled={!!busy} onChange={e=>{const file=e.target.files?.[0];void upload(key,file);e.target.value=''}}/>
     </details>
     {key==='hero'&&<div className="mt-5 rounded-2xl border border-[#e9e0e8] p-4 bg-[#fcfafc] space-y-3">
