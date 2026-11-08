@@ -3,6 +3,7 @@ import {currentUser,hasAccess,publicUser,validateOrigin} from '@/lib/admin-auth'
 import {mutateCms,readCms,newRow,TABLES,CmsStorageError,type CmsStore} from '@/lib/cms-store';
 import {isAllowedImageUrl} from '@/lib/image-urls';
 import {latestById} from '@/lib/cms-dedupe';
+import {ABOUT_CONTENT_KEY,ABOUT_FIELDS} from '@/lib/about-content';
 export const runtime='nodejs';export const dynamic='force-dynamic';
 const tableAccess:Record<string,string>={specialists:'specialists',specialties:'specialties',specialist_specialties:'specialists',blog_posts:'blog',blog_categories:'blog',achievements:'achievements',site_settings:'settings',availability_settings:'availability',dynamic_sections:'sections',departments:'departments',activity_logs:'settings',content_revisions:'settings',profiles:'users'};
 const published=(t:string,r:Record<string,unknown>)=>t==='specialists'||t==='specialties'||t==='achievements'?r.is_published===true:t==='blog_posts'?r.status==='published':t==='availability_settings'?r.is_active===true:t==='dynamic_sections'?r.is_enabled===true:t==='site_settings'?r.is_public===true:t==='blog_categories'||t==='departments'?true:false;
@@ -52,6 +53,13 @@ export async function POST(req:Request){try{
   return ['heroPositionX','heroPositionY'].some(key=>visuals[key]!==undefined&&
    (typeof visuals[key]!=='number'||!Number.isFinite(visuals[key])||(visuals[key] as number)<0||(visuals[key] as number)>100));
  }))return err('إعدادات الصورة غير صالحة؛ تحقق من الروابط والتمركز ونمط العرض.',400);
+ if(q.table==='site_settings'&&payload.some(row=>{
+  const r=safeBody(row);
+  if(r?.key!==ABOUT_CONTENT_KEY)return false;
+  const value=safeBody(r.value);
+  return !value||!ABOUT_FIELDS.every(key=>typeof value[key]==='string'&&(value[key] as string).trim().length>0&&(value[key] as string).length<=3000)
+   ||Object.keys(value).some(key=>!ABOUT_FIELDS.includes(key as typeof ABOUT_FIELDS[number]));
+ }))return err('محتوى «من نحن» غير صالح. يجب تعبئة النصوص بالعربية والإنجليزية.',400);
  if(q.action==='update'||q.action==='delete'){if(!filters.length)return err('يلزم تحديد السجل عند التعديل أو الحذف');}
  if(q.action==='upsert'&&(!q.onConflict||!/^[a-z_]{2,40}$/.test(q.onConflict)))return err('تحديد مفتاح السجل مطلوب');
  const result=await mutateCms(store=>{
@@ -59,7 +67,7 @@ export async function POST(req:Request){try{
   /** Keep only bounded, admin-only snapshots of editorial records, never patient data or credentials. */
   const archive=(row:Record<string,unknown>)=>{
    if(!['specialists','specialties','blog_posts','achievements','site_settings','availability_settings','dynamic_sections'].includes(q.table))return;
-   if(q.table==='site_settings'&&row.key!=='site_visuals')return;
+   if(q.table==='site_settings'&&row.key!=='site_visuals'&&row.key!==ABOUT_CONTENT_KEY)return;
    const serialized=JSON.stringify(row);
    if(serialized.length>60000)return;
    const revisions=store.tables.content_revisions ||= [];
