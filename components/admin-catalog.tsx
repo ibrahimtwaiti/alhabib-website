@@ -5,6 +5,7 @@ import {createClient} from '@/lib/cms-client';
 import {profiles,specialties,type Profile,type Specialty} from '@/lib/clinic-data';
 import {builtinProfileId,profileById,CATALOG_SETTING_KEY,type CatalogMode} from '@/lib/catalog';
 import {isAllowedImageUrl} from '@/lib/image-urls';
+import AdminImagePreview from '@/components/admin-image-preview';
 
 type Mode='team'|'specialties';
 type AnyRecord=Record<string,unknown> & {id?:string;name_ar?:string;slug?:string;is_published?:boolean;image_url?:string|null};
@@ -52,6 +53,7 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
  const team=module==='team';const key=team?'specialists':'specialties';
  const allowed=can(profile,key);const owner=profile.role==='super_admin';
  const [rows,setRows]=useState<AnyRecord[]>([]);const [mode,setMode]=useState<CatalogMode>({});
+ const [loaded,setLoaded]=useState(false);
  const [specialtyRows,setSpecialtyRows]=useState<{id:string;slug:string}[]>([]);const [relations,setRelations]=useState<{specialist_id:string;specialty_id:string}[]>([]);
  const [editing,setEditing]=useState<string|null>(null);const [form,setForm]=useState<Record<string,string>>({});
  const [file,setFile]=useState<File|null>(null);const [preview,setPreview]=useState('');
@@ -59,6 +61,7 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
  const [error,setError]=useState('');const [notice,setNotice]=useState('');
  const [fresh,setFresh]=useState(0);
  const reload=useCallback(async()=>{
+  setLoaded(false);
   const db=createClient();const [r,s]=await Promise.all([
    db.from(key).select('*').order('sort_order',{ascending:true}),
    db.from('site_settings').select('value').eq('key',CATALOG_SETTING_KEY).maybeSingle()
@@ -67,9 +70,14 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
   if(s.error)throw s.error;
   setRows((r.data||[]) as AnyRecord[]);setMode((s.data?.value||{}) as CatalogMode);
   if(team){const [ss,rr]=await Promise.all([db.from('specialties').select('id,slug'),db.from('specialist_specialties').select('specialist_id,specialty_id')]);if(ss.data)setSpecialtyRows(ss.data.filter((x:{id:string;slug:string|null})=>x.slug) as {id:string;slug:string}[]);if(rr.data)setRelations(rr.data)}
+  setLoaded(true);
  },[key]);
  useEffect(()=>{if(!allowed)return;let active=true;(async()=>{try{await reload()}catch(e){if(active)setError((e as Error).message)}})();return()=>{active=false}},[allowed,reload,fresh]);
- useEffect(()=>{if(!file){setPreview('');return}const url=URL.createObjectURL(file);setPreview(url);return()=>URL.revokeObjectURL(url)},[file]);
+ useEffect(()=>()=>{if(preview)URL.revokeObjectURL(preview)},[preview]);
+ function chooseImage(file:File|null){
+  setFile(file);
+  setPreview(file?URL.createObjectURL(file):'');
+ }
  const defaults=team?profiles:specialties;
  const display=[...defaults.map(item=>{
   const r=rows.find(x=>team?(x.id===builtinProfileId(item.slug)||x.name_ar===(item as Profile).nameAr):x.slug===item.slug);
@@ -99,10 +107,10 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
    description_ar:String(r?.description_ar||s?.introAr||''),description_en:String(r?.description_en||s?.introEn||''),
    image_url:String(r?.image_url||s?.image||'')
   });
-  setFile(null);setPublished(r?.is_published??true);setError('');setNotice('');
+  chooseImage(null);setPublished(r?.is_published??true);setError('');setNotice('');
   window.scrollTo({top:0,behavior:'smooth'});
  }
- function reset(){setEditing(null);setForm({});setFile(null);setPublished(true)}
+ function reset(){setEditing(null);setForm({});chooseImage(null);setPublished(true)}
  function field(k:string,label:string,multiline=false,required=false){return <div key={k}><label htmlFor={'catalog-'+k} className="label">{label}</label>{multiline?<textarea id={'catalog-'+k} rows={3} className="field" value={form[k]||''} onChange={e=>setForm(x=>({...x,[k]:e.target.value}))}/>:<input id={'catalog-'+k} className="field" required={required} dir={k.endsWith('_en')?'ltr':undefined} value={form[k]||''} onChange={e=>setForm(x=>({...x,[k]:e.target.value}))}/>}</div>}
  async function importBundled(){
   if(!owner)return;
@@ -168,6 +176,7 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
   try{const {error}=await createClient().from(key).update({is_published:!r.is_published}).eq('id',r.id);if(error)throw error;await reload()}catch(e){setError((e as Error).message)}
  }
  if(!allowed)return <div className="card p-7">ليس لديك صلاحية إدارة {team?'الأخصائيين':'التخصصات'}.</div>;
+ if(!loaded)return <div role="status" className="card p-7">{error?<><p className="text-red-700">{error}</p><button type="button" className="button-outline mt-4" onClick={()=>setFresh(x=>x+1)}>إعادة المحاولة</button></>:'جارٍ تحميل الصور المحفوظة... لن تظهر الصور الأصلية قبل وصول بيانات Neon.'}</div>;
  return <div className="space-y-6">
  <div className="card p-6 flex flex-wrap gap-4 items-center justify-between"><div><h2 className="text-xl font-extrabold">{team?'فريق المركز والصور الشخصية':'صور وبطاقات التخصصات'}</h2><p className="text-sm text-slate-600 mt-2">{mode[module]?'الكتالوج متصل بقاعدة البيانات. التحكم في النشر والصور متاح.':'الملفات الرسمية موجودة في نسخة الموقع. استورد الملفات لتفعيل الإدارة مباشرة. يمكنك إعادة الاستيراد بأمان لاستكمال أي ملفات ناقصة.'}</p></div><div className="flex gap-2 flex-wrap">{owner&&<button disabled={busy} type="button" onClick={importBundled} className="button-primary"><UploadCloud size={18}/>{busy?'جارٍ الاستيراد...':mode[module]?'فحص واستكمال الاستيراد':team?'استيراد الفريق الرسمي (10 ملفات)':'استيراد التخصصات (7)'}</button>}<button className="button-outline !px-3" onClick={()=>setFresh(x=>x+1)}><RefreshCw size={18}/>تحديث</button></div></div>
  {error&&<div role="alert" className="p-4 rounded-xl text-red-800 bg-red-50">{error}</div>}{notice&&<div role="status" className="p-4 rounded-xl text-emerald-800 bg-emerald-50">{notice}</div>}
@@ -179,11 +188,11 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
  <div className="rounded-2xl border border-[#eedce9] bg-[#fbf7fa] p-4">
  <label htmlFor="catalog-image-link" className="label flex gap-2 items-center"><ImagePlus size={18}/>{team?'الصورة الشخصية للأخصائي':'صورة التخصص'} — برابط مباشر</label>
  <p className="text-sm text-slate-600 mb-3">الطريقة الموصى بها: الصق رابط الصورة المباشر الذي يبدأ بـ HTTPS، ثم اضغط حفظ التعديلات. لا تحتاج إلى رفع الصورة من جهازك أو تغيير الملفات البرمجية.</p>
- <input id="catalog-image-link" aria-label="رابط الصورة المباشر" dir="ltr" type="text" inputMode="url" placeholder="https://example.com/photo.jpg" className="field !text-sm" value={form.image_url||''} onChange={e=>{setForm(x=>({...x,image_url:e.target.value}));setFile(null)}}/>
+ <input id="catalog-image-link" aria-label="رابط الصورة المباشر" dir="ltr" type="text" inputMode="url" placeholder="https://example.com/photo.jpg" className="field !text-sm" value={form.image_url||''} onChange={e=>{setForm(x=>({...x,image_url:e.target.value}));chooseImage(null)}}/>
  <p className="text-xs text-slate-500 mt-2">روابط مشاركة Google Drive أو صفحات Instagram ليست روابط صور مباشرة. اختبر ظهور الصورة أسفل الحقل. يمكنك أيضاً إبقاء مسار الصورة الأصلي كما هو.</p>
  <details className="mt-3 rounded-lg border border-[#e7dbe4] bg-white px-3 py-2"><summary className="text-sm cursor-pointer font-semibold">اختياري: رفع صورة من الجهاز بدلاً من الرابط</summary>
  <p className="text-xs text-slate-500 my-2">JPG أو PNG أو WebP أو AVIF، حجم 5 ميجابايت كحد أقصى. عند اختيار ملف جديد تكون له الأولوية.</p>
- <input aria-label="رفع الصورة" type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="field !text-sm" onChange={e=>setFile(e.target.files?.[0]||null)}/></details>
+ <input aria-label="رفع الصورة" type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="field !text-sm" onChange={e=>chooseImage(e.target.files?.[0]||null)}/></details>
  {team&&<div className="mt-4 space-y-3 rounded-xl bg-white border border-[#eee7ed] p-4">
  <h4 className="font-bold text-sm">حجم وتأطير الصورة الشخصية</h4>
  <label className="label" htmlFor="portrait-fit">طريقة عرض الصورة</label>
@@ -191,7 +200,7 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
  {([['photo_position_x','التمركز الأفقي'],['photo_position_y','التمركز الرأسي']] as const).map(([key,label])=><div key={key}><label htmlFor={key} className="label">{label}: {form[key]??(key==='photo_position_x'?'50':'100')}%</label><input id={key} type="range" min="0" max="100" step="1" className="w-full accent-[#8d517a]" value={form[key]??(key==='photo_position_x'?'50':'100')} onChange={e=>setForm(x=>({...x,[key]:e.target.value}))}/></div>)}
  <p className="text-xs text-slate-500">تظهر هذه الإعدادات في بطاقات الفريق وصفحة الأخصائي، دون إضافة تأثير لوني.</p>
  </div>}
- <div className="mt-3 rounded-xl bg-[#f3f3f3] border border-[#eee7ed] overflow-hidden h-44 flex items-center justify-center">{(preview||form.image_url)?<img src={preview||form.image_url} alt="معاينة رابط الصورة قبل الحفظ" className="h-full w-full" style={{objectFit:team&&form.photo_fit==='cover'?'cover':'contain',objectPosition:team?(form.photo_position_x??'50')+'% '+(form.photo_position_y??'100')+'%':'center'}} onError={e=>{e.currentTarget.style.opacity='0.28'}}/>:<span className="text-xs text-slate-500">لا توجد صورة مختارة. يمكن إبقاء الصورة الحالية أو وضع رابط جديد.</span>}</div>
+ <div className="mt-3 rounded-xl bg-[#f3f3f3] border border-[#eee7ed] overflow-hidden h-44 flex items-center justify-center"><AdminImagePreview src={preview||form.image_url||''} alt="معاينة الصورة المختارة" fit={team&&form.photo_fit==='cover'?'cover':'contain'} position={team?(form.photo_position_x??'50')+'% '+(form.photo_position_y??'100')+'%':'center'} emptyLabel="لا توجد صورة مختارة"/></div>
  </div>
  <label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={published} onChange={e=>setPublished(e.target.checked)}/>إظهار هذا الملف على الموقع</label>
  <div className="flex flex-wrap gap-2"><button className="button-primary" disabled={busy}><Save size={18}/>{busy?'جارٍ الحفظ...':'حفظ التعديلات'}</button><button type="button" className="button-outline" onClick={reset}>ملف جديد / إلغاء</button></div></form></div>
@@ -200,6 +209,6 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
   const name=String(r?.name_ar||(team?p?.nameAr:s?.nameAr)||'ملف جديد');
   const image=String(r?.image_url||(team?p?.photo:s?.image)||'');
   const isVisible=r?.is_published??true;
-  return <div key={item.identifier} className="rounded-2xl border border-[#eee7ed] p-3 flex gap-4 items-center flex-wrap"><div className="h-20 w-20 shrink-0 rounded-xl bg-[#fbf4f9] overflow-hidden flex items-center justify-center">{image?<img src={image} alt={name} className="h-full w-full object-contain"/>:<ImagePlus className="text-[#8d517a]"/>}</div><div className="flex-1 min-w-[145px]"><strong className="block text-sm">{name}</strong><span className="text-xs text-slate-500">{r?(isVisible?'منشور':'مخفي'):'من ملفات المركز (غير مستورد)'}</span></div><div className="flex gap-2 flex-wrap"><button className="button-outline !p-2 !min-h-[38px]" onClick={()=>start(item)} aria-label={'تعديل '+name}>تعديل</button><button className="button-outline !p-2 !min-h-[38px]" onClick={()=>toggle(item)} disabled={!mode[module]} aria-label={(isVisible?'إخفاء ':'إظهار ')+name}>{isVisible?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></div>
+  return <div key={item.identifier} className="rounded-2xl border border-[#eee7ed] p-3 flex gap-4 items-center flex-wrap"><div className="h-20 w-20 shrink-0 rounded-xl bg-[#fbf4f9] overflow-hidden flex items-center justify-center"><AdminImagePreview src={image} alt={name} fit="contain" emptyLabel="بدون صورة"/></div><div className="flex-1 min-w-[145px]"><strong className="block text-sm">{name}</strong><span className="text-xs text-slate-500">{r?(isVisible?'منشور':'مخفي'):'من ملفات المركز (غير مستورد)'}</span></div><div className="flex gap-2 flex-wrap"><button className="button-outline !p-2 !min-h-[38px]" onClick={()=>start(item)} aria-label={'تعديل '+name}>تعديل</button><button className="button-outline !p-2 !min-h-[38px]" onClick={()=>toggle(item)} disabled={!mode[module]} aria-label={(isVisible?'إخفاء ':'إظهار ')+name}>{isVisible?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></div>
  })}</div></div></div></div>;
 }
