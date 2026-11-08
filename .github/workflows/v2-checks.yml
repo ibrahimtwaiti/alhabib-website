@@ -28,6 +28,8 @@ jobs:
         run: npm run test:image-links && npm run test:cms-store
       - name: Transactional Postgres CMS regression test
         run: npm run test:cms-postgres
+      - name: CMS write/delete validation and authorization regression tests
+        run: npm run test:cms-mutations
       - name: Public first-render image regression checks
         run: npm run test:public-images
       - name: V3 database and upload isolation checks
