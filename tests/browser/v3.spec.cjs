@@ -44,7 +44,7 @@ test('mobile menu and bilingual direction work',async({page})=>{
  await page.getByRole('link',{name:'الفريق الطبي'}).last().click();
  await expect(page).toHaveURL(/\/team$/);
  await expect(page.locator('nav.nav-mobile')).toHaveCount(0);
- await page.getByRole('button',{name:/EN/}).click();
+ await page.getByRole('button',{name:'Switch to English'}).click();
  await expect(page.locator('html')).toHaveAttribute('dir','ltr');
  await expect(page.locator('html')).toHaveAttribute('lang','en');
 });
