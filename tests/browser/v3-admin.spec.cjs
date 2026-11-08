@@ -16,6 +16,7 @@ async function mockAdmin(page){
   }
   let data=[];
   if(q.table==='profiles')data=[{id:'test-admin-id',full_name:'مدير الاختبار',username:'preview-test',role:'super_admin',permissions:{settings:true},is_active:true}];
+  if(q.table==='specialists'&&q.action==='select'&&q.selection==='*')await delay(650);
   if(q.table==='site_settings'&&q.filters?.some(x=>x.key==='key'&&x.value==='site_visuals')){
    await delay(700);
    data=[{key:'site_visuals',value:{hero:'/assets/team/hisham-hendawy.webp',heroFit:'cover'},is_public:true}];
@@ -34,6 +35,9 @@ test('admin image library never flashes a bundled hero while saved images load',
  await expect(page.locator('img[src="/assets/team/heba-alhabib.webp"]')).toHaveCount(0);
  await expect(page.locator('img[src="/assets/team/hisham-hendawy.webp"]').first()).toBeVisible();
  await expect(page.getByText('التحكم بحجم الصورة الرئيسية وتمركزها')).toBeVisible();
+ await page.getByRole('textbox',{name:'رابط الصورة الرئيسية الكبيرة'}).fill('/assets/team/heba-alhabib.webp');
+ await expect(page.locator('img[src="/assets/team/hisham-hendawy.webp"]')).toHaveCount(0);
+ await expect(page.locator('img[src="/assets/team/heba-alhabib.webp"]')).toBeVisible();
 });
 test('admin About page supports bilingual preview and saves published CMS content',async({page})=>{
  const mock=await mockAdmin(page);
@@ -49,4 +53,14 @@ test('admin About page supports bilingual preview and saves published CMS conten
  expect(mock.records).toHaveLength(1);
  expect(mock.getSavedAbout().headingAr).toBe('عنوان تجريبي جديد للمركز');
  expect(mock.records[0].payload.is_public).toBe(true);
+});
+
+test('team photo editor waits for saved CMS profiles before rendering its cards',async({page})=>{
+ await mockAdmin(page);
+ await page.goto('/admin/dashboard');
+ await page.getByRole('button',{name:'الأخصائيون'}).click();
+ await expect(page.getByText(/جارٍ تحميل الصور المحفوظة/)).toBeVisible();
+ await expect(page.locator('.profile-card')).toHaveCount(0);
+ await expect(page.getByText('فريق المركز والصور الشخصية')).toBeVisible();
+ await expect(page.getByRole('button',{name:/تعديل /}).first()).toBeVisible();
 });
