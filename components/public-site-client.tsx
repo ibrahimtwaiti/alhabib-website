@@ -5,6 +5,7 @@ import {usePathname} from 'next/navigation';
 import Image from 'next/image';
 import {Activity,ArrowLeft,ArrowRight,ArrowUpLeft,Award,BookOpen,Brain,CalendarCheck,Check,CheckCircle2,ChevronDown,ChevronLeft,ChevronRight,Globe2,Heart,HeartHandshake,HeartPulse,Leaf,MapPin,Menu,MessageCircle,MoveUpRight,Phone,ShieldCheck,Sparkles,Stethoscope,Users,UserRoundCheck,X} from 'lucide-react';
 import BookingForm from '@/components/booking-form';
+import PublicMotion from '@/components/public-motion';
 import type {SiteSection} from '@/components/admin-sections';
 import type {SiteVisuals} from '@/components/use-site-visuals';
 import type {PublicSiteData,PublicArticle,PublicAchievement} from '@/lib/public-site-data';
@@ -82,5 +83,5 @@ export default function PublicSiteClient({page='home',slug,initialData}:{page?:P
  const [lang,setLang]=useState<Language>('ar');const {people,services,visuals,articles,highlights,sections}=initialData;
  useEffect(()=>{try{const v=window.localStorage.getItem('alhabib-language');if(v==='ar'||v==='en')setLang(v)}catch{}},[]);
  useEffect(()=>{try{window.localStorage.setItem('alhabib-language',lang)}catch{};document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr'},[lang]);
- return <div className="public-site" dir={lang==='ar'?'rtl':'ltr'}><a href="#main-content" className="skip-link">{tr(lang,'انتقل إلى المحتوى','Skip to content')}</a><Header lang={lang} setLang={setLang} visuals={visuals}/><main id="main-content" tabIndex={-1}>{page==='home'?<Home lang={lang} people={people} articles={articles} services={services} visuals={visuals} sections={sections}/>:<ContentPage lang={lang} page={page} slug={slug} people={people} services={services} articles={articles} highlights={highlights}/>}</main><Footer lang={lang} visuals={visuals}/></div>;
+ return <div className="public-site" dir={lang==='ar'?'rtl':'ltr'}><PublicMotion/><a href="#main-content" className="skip-link">{tr(lang,'انتقل إلى المحتوى','Skip to content')}</a><Header lang={lang} setLang={setLang} visuals={visuals}/><main id="main-content" tabIndex={-1}>{page==='home'?<Home lang={lang} people={people} articles={articles} services={services} visuals={visuals} sections={sections}/>:<ContentPage lang={lang} page={page} slug={slug} people={people} services={services} articles={articles} highlights={highlights}/>}</main><Footer lang={lang} visuals={visuals}/></div>;
 }
