@@ -16,6 +16,7 @@
     "test:image-links": "node scripts/test-image-links.cjs",
     "test:cms-store": "node scripts/test-cms-store.cjs",
     "test:cms-postgres": "node scripts/test-cms-postgres.cjs",
+    "test:cms-mutations": "node scripts/test-cms-mutations.cjs",
     "test:public-images": "node scripts/test-public-images.cjs",
     "test:v3": "node scripts/test-v3-guards.cjs && node scripts/test-v3-motion.cjs && node scripts/test-v3-upload.cjs"
   },

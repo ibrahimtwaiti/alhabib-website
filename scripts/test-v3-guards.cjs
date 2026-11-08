@@ -17,6 +17,10 @@ const {isV3Preview,cmsDatabaseUrl,canWriteCms,mutateCms}=moduleObject.exports;
 (async()=>{
  assert.equal(isV3Preview(),true,'V3 branch recognized');
  assert.equal(canWriteCms(),false,'V3 preview cannot write without isolated Neon URL');
+ env.VERCEL_GIT_COMMIT_REF='fix/v3-cms-hotfix';
+ assert.equal(isV3Preview(),true,'all hotfix/PR previews must be isolated, regardless of branch name');
+ assert.equal(canWriteCms(),false,'feature branch cannot write to production Neon');
+ env.VERCEL_GIT_COMMIT_REF='version-3';
  assert.equal(cmsDatabaseUrl(),env.DATABASE_URL,'old preview can read production data');
  await assert.rejects(()=>mutateCms(()=>{throw Error('Must not execute')}),/للقراءة فقط|V3_PREVIEW_DATABASE_URL/);
  env.V3_PREVIEW_DATABASE_URL=env.DATABASE_URL;
