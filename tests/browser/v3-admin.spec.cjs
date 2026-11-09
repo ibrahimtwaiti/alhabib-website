@@ -4,6 +4,7 @@ const {setTimeout:delay}=require('node:timers/promises');
  * account, production session, CMS record, Blob token or Neon data is changed. */
 async function mockAdmin(page){
  let savedAbout=null;
+ let savedSocial=null;
  const records=[];
  await page.route('**/api/admin/session',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({user:{id:'test-admin-id',role:'super_admin'}})}));
  await page.route('**/api/admin/storage-health',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({backend:'postgres',ready:true,writeProtected:false})}));
@@ -12,6 +13,7 @@ async function mockAdmin(page){
   if(q.action==='upsert'&&q.table==='site_settings'){
    records.push(q);
    if(q.payload?.key==='about_content')savedAbout=q.payload.value;
+   if(q.payload?.key==='social_links')savedSocial=q.payload.value;
    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[{id:'about-test',...q.payload}],error:null})});
   }
   let data=[];
@@ -22,10 +24,12 @@ async function mockAdmin(page){
    data=[{key:'site_visuals',value:{hero:'/assets/team/hisham-hendawy.webp',heroFit:'cover'},is_public:true}];
   }else if(q.table==='site_settings'&&q.filters?.some(x=>x.key==='key'&&x.value==='about_content')&&savedAbout){
    data=[{key:'about_content',value:savedAbout,is_public:true}];
+  }else if(q.table==='site_settings'&&q.filters?.some(x=>x.key==='key'&&x.value==='social_links')&&savedSocial){
+   data=[{key:'social_links',value:savedSocial,is_public:true}];
   }
   return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data,error:null,count:q.head?data.length:null})});
  });
- return{records,getSavedAbout:()=>savedAbout};
+ return{records,getSavedAbout:()=>savedAbout,getSavedSocial:()=>savedSocial};
 }
 test('admin image library never flashes a bundled hero while saved images load',async({page})=>{
  await mockAdmin(page);
@@ -63,4 +67,23 @@ test('team photo editor waits for saved CMS profiles before rendering its cards'
  await expect(page.locator('.profile-card')).toHaveCount(0);
  await expect(page.getByText('فريق المركز والصور الشخصية')).toBeVisible();
  await expect(page.getByRole('button',{name:/تعديل /}).first()).toBeVisible();
+});
+
+test('site settings edit official social profile links and publish through CMS',async({page})=>{
+ const mock=await mockAdmin(page);
+ await page.goto('/admin/dashboard');
+ await page.getByRole('button',{name:'إعدادات الموقع'}).click();
+ await expect(page.locator('#social-instagram')).toHaveValue('https://www.instagram.com/alhabib_physio/');
+ await expect(page.locator('#social-x')).toHaveValue('https://x.com/AlhabibPhy85165');
+ await expect(page.locator('#social-snapchat')).toHaveValue('https://www.snapchat.com/add/alhabib_physio');
+ await expect(page.locator('#social-tiktok')).toHaveValue('https://www.tiktok.com/@alhabib_physio');
+ await page.locator('#social-x').fill('https://x.com/AlhabibCare');
+ await page.getByRole('button',{name:'حفظ ونشر الحسابات'}).click();
+ await expect(page.getByText(/تم حفظ روابط حسابات المركز ونشرها بنجاح/)).toBeVisible();
+ expect(mock.getSavedSocial().x).toBe('https://x.com/AlhabibCare');
+ expect(mock.records.some(x=>x.payload?.key==='social_links'&&x.payload?.is_public===true&&x.onConflict==='key')).toBe(true);
+ await page.locator('#social-snapchat').fill('https://attacker.example/bad');
+ await page.getByRole('button',{name:'حفظ ونشر الحسابات'}).click();
+ await expect(page.getByRole('alert').filter({hasText:'رابط Snapchat غير صالح'})).toBeVisible();
+ expect(mock.records.filter(x=>x.payload?.key==='social_links')).toHaveLength(1);
 });
