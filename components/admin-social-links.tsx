@@ -18,17 +18,18 @@ export default function AdminSocialLinks({profile}:{profile:AdminProfile}){
  const [values,setValues]=useState<SocialLinks>({...DEFAULT_SOCIAL_LINKS});
  const [saved,setSaved]=useState<SocialLinks>({...DEFAULT_SOCIAL_LINKS});
  const [loading,setLoading]=useState(true);
+ const [loaded,setLoaded]=useState(false);
  const [saving,setSaving]=useState(false);
  const [error,setError]=useState('');
  const [notice,setNotice]=useState('');
 
  async function load(){
-  setLoading(true);setError('');setNotice('');
+  setLoading(true);setLoaded(false);setError('');setNotice('');
   try{
    const {data,error:loadError}=await createClient().from('site_settings').select('value').eq('key',SOCIAL_LINKS_KEY).maybeSingle();
    if(loadError)throw loadError;
    const current=getSocialLinks(data?.value);
-   setValues({...current});setSaved({...current});
+   setValues({...current});setSaved({...current});setLoaded(true);
   }catch(e){setError(e instanceof Error?e.message:'تعذر تحميل روابط التواصل');}
   finally{setLoading(false)}
  }
@@ -67,7 +68,7 @@ export default function AdminSocialLinks({profile}:{profile:AdminProfile}){
     <p className="text-sm text-slate-600 leading-7 mt-1">إدارة الروابط الرسمية التي تظهر بأيقوناتها في أسفل الموقع. اترك الرابط فارغًا لإخفاء المنصة، أو أدخل رابط حسابها لعرضه مجددًا.</p>
    </div>
   </div>
-  {loading?<div className="py-8 text-slate-500" role="status">جارٍ تحميل روابط التواصل المعتمدة...</div>:
+  {loading?<div className="py-8 text-slate-500" role="status">جارٍ تحميل روابط التواصل المعتمدة...</div>:!loaded?<div className="mt-5"><p role="alert" className="rounded-xl bg-red-50 text-red-700 p-3 text-sm">{error||"تعذر تحميل الروابط المعتمدة"}</p><button type="button" className="button-outline mt-3" onClick={()=>void load()}>إعادة المحاولة</button></div>:
   <form onSubmit={save} className="mt-6 space-y-4">
    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">{networks.map(({key,name,nameAr,Icon})=>
     <div key={key} className="rounded-2xl bg-[#fcfafc] border border-[#e8e3e7] p-4">
@@ -89,6 +90,5 @@ export default function AdminSocialLinks({profile}:{profile:AdminProfile}){
     <button type="button" disabled={saving||!modified} className="button-outline" onClick={()=>{setValues({...saved});setError('');setNotice('');}}><RotateCcw size={17}/>التراجع عن التغييرات</button>
    </div>
   </form>}
-  {loading&&error&&<button type="button" className="button-outline mt-4" onClick={()=>void load()}>إعادة المحاولة</button>}
  </section>
 }
