@@ -8,6 +8,10 @@ const path=require('node:path');
 const vm=require('node:vm');
 const ts=require('typescript');
 
+const socialSource=fs.readFileSync(path.join(__dirname,'../lib/social-links.ts'),'utf8');
+const socialJs=ts.transpileModule(socialSource,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
+const socialModule={exports:{}};
+vm.runInNewContext(socialJs,{module:socialModule,exports:socialModule.exports,URL,console},{filename:'lib/social-links.ts'});
 const source=fs.readFileSync(path.join(__dirname,'../app/api/cms/route.ts'),'utf8');
 const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
 const tables=['specialists','specialties','specialist_specialties','blog_posts','achievements','site_settings','availability_settings','dynamic_sections','blog_categories','departments','activity_logs','content_revisions'];
@@ -25,7 +29,8 @@ const modules={
  },
  '@/lib/image-urls':{isAllowedImageUrl:()=>true},
  '@/lib/cms-dedupe':{latestById:rows=>rows},
- '@/lib/about-content':{ABOUT_CONTENT_KEY:'about_content',ABOUT_FIELDS:[]}
+ '@/lib/about-content':{ABOUT_CONTENT_KEY:'about_content',ABOUT_FIELDS:[]},
+ '@/lib/social-links':socialModule.exports
 };
 const moduleObject={exports:{}};
 vm.runInNewContext(compiled,{module:moduleObject,exports:moduleObject.exports,require:name=>{
@@ -80,6 +85,18 @@ const send=async body=>{const response=await POST(request(body));return{status:r
  response=await send({table:'blog_posts',action:'update',filters:[{key:'id',value:'blog-2'}],payload:{title_ar:'عنوان مصحح'}});
  assert.equal(response.status,200,'normal updates still work');
  assert.equal(store.tables.blog_posts[0].title_ar,'عنوان مصحح');
+
+ const socialLinks={...socialModule.exports.DEFAULT_SOCIAL_LINKS};
+ response=await send({table:'site_settings',action:'upsert',onConflict:'key',payload:{key:'social_links',is_public:true,value:socialLinks}});
+ assert.equal(response.status,200,'valid official social accounts should be saved in settings');
+ assert.equal(store.tables.site_settings.length,1);
+ assert.equal(store.tables.site_settings[0].value.instagram,socialLinks.instagram);
+ response=await send({table:'site_settings',action:'upsert',onConflict:'key',payload:{key:'social_links',is_public:true,value:{...socialLinks,tiktok:'https://fake.example/steal'}}});
+ assert.equal(response.status,400,'unsafe social profile URLs must be rejected by server validation');
+ assert.equal(store.tables.site_settings[0].value.tiktok,socialLinks.tiktok,'invalid request must leave the approved settings unchanged');
+ response=await send({table:'site_settings',action:'upsert',onConflict:'key',payload:{key:'social_links',is_public:true,value:{...socialLinks,x:'https://x.com/ClinicCare2026'}}});
+ assert.equal(response.status,200,'admin can edit X account URL');
+ assert.equal(store.tables.content_revisions.some(rev=>rev.source_key==='social_links'),true,'previous social links can be restored');
 
  authenticated=false;
  response=await send({table:'blog_posts',action:'delete',filters:[{key:'id',value:'blog-2'}]});

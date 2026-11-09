@@ -77,3 +77,24 @@ test('prefers-reduced-motion disables automatic movement and keeps content acces
  expect(animation).toBe('none');
  await expect(page.locator('.public-site .reveal-pending')).toHaveCount(0);
 });
+
+test('homepage footer shows approved social profiles accessibly in both languages',async({page})=>{
+ await page.goto('/');
+ const footer=page.locator('footer');
+ const expected=[
+  ['instagram','https://www.instagram.com/alhabib_physio/'],
+  ['x','https://x.com/AlhabibPhy85165'],
+  ['snapchat','https://www.snapchat.com/add/alhabib_physio'],
+  ['tiktok','https://www.tiktok.com/@alhabib_physio']
+ ];
+ await expect(footer.getByRole('heading',{name:'تابع مركز الحبيب'})).toBeVisible();
+ for(const [platform,href] of expected){
+  const link=footer.locator('a[href="'+href+'"]');
+  await expect(link,platform).toHaveCount(1);
+  await expect(link).toHaveAttribute('target','_blank');
+  await expect(link).toHaveAttribute('rel',/noopener noreferrer/);
+ }
+ await page.getByRole('button',{name:'Switch to English'}).click();
+ await expect(footer.getByRole('heading',{name:'Follow Alhabib Center'})).toBeVisible();
+ await expect(footer.getByRole('link',{name:'Open Alhabib Center on Instagram'})).toBeVisible();
+});

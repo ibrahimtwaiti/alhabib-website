@@ -19,6 +19,7 @@
     "test:cms-mutations": "node scripts/test-cms-mutations.cjs",
     "test:neon-cutover": "node scripts/test-neon-cutover.cjs",
     "test:public-images": "node scripts/test-public-images.cjs",
+    "test:social": "node scripts/test-social-links.cjs",
     "test:v3": "node scripts/test-v3-guards.cjs && node scripts/test-v3-motion.cjs && node scripts/test-v3-upload.cjs"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
     "next": "15.5.29",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-icons": "^5.5.0",
     "@vercel/blob": "2.8.2",
     "@neondatabase/serverless": "^1.0.0"
   },
