@@ -20,7 +20,8 @@
     "test:neon-cutover": "node scripts/test-neon-cutover.cjs",
     "test:public-images": "node scripts/test-public-images.cjs",
     "test:social": "node scripts/test-social-links.cjs",
-    "test:v3": "node scripts/test-v3-guards.cjs && node scripts/test-v3-motion.cjs && node scripts/test-v3-upload.cjs"
+    "test:v3": "node scripts/test-v3-guards.cjs && node scripts/test-v3-motion.cjs && node scripts/test-v3-upload.cjs",
+    "test:visual-baseline": "node scripts/test-visual-baseline.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

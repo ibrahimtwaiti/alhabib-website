@@ -36,6 +36,8 @@ jobs:
         run: npm run test:public-images
       - name: Public social links, admin settings and platform URL checks
         run: npm run test:social
+      - name: Approved visual defaults and restore regression tests
+        run: npm run test:visual-baseline
       - name: V3 database and upload isolation checks
         run: npm run test:v3
       - name: TypeScript check

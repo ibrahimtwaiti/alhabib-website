@@ -2,12 +2,13 @@
  * Never serialize admin users, password hashes or unpublished CMS entries to clients.
  */
 import {profiles,specialties,type Profile,type Specialty} from './clinic-data';
-import {CATALOG_SETTING_KEY,reconcileProfiles,reconcileSpecialties,type CatalogMode,type DbProfile,type DbSpecialty} from './catalog';
+import {CATALOG_SETTING_KEY,builtinProfileId,reconcileProfiles,reconcileSpecialties,type CatalogMode,type DbProfile,type DbSpecialty} from './catalog';
 import {isAllowedImageUrl} from './image-urls';
 import {latestById} from './cms-dedupe';
 import type {CmsStore} from './cms-store';
 import type {SiteSection} from '@/components/admin-sections';
 import type {SiteVisuals} from '@/components/use-site-visuals';
+import {currentVisuals,getVisualBaseline} from './visual-baseline';
 import {ABOUT_CONTENT_KEY,getAboutContent,type AboutContent} from './about-content';
 import {SOCIAL_LINKS_KEY,getSocialLinks,type SocialLinks} from './social-links';
 
@@ -34,29 +35,23 @@ export function publicDataFromStore(store:Pick<CmsStore,'tables'>):PublicSiteDat
   const base=specialties.find(s=>s.slug===target?.slug);
   if(base && typeof link.specialist_id==='string')categoryById[link.specialist_id]=base.category;
  }
- const people=reconcileProfiles(teamRows as unknown as DbProfile[],mode.team===true,categoryById);
- const legacy=(setting('specialty_visuals')||{}) as {heroImage?:unknown;specialties?:Record<string,{image?:string;icon?:string}>};
- const oldSpecialties=legacy.specialties||{};
+ const baseline=getVisualBaseline(store);
+ const people=reconcileProfiles(teamRows as unknown as DbProfile[],mode.team===true,categoryById).map(person=>{
+  const row=teamRows.find(r=>r.id===person.slug||r.name_ar===person.nameAr);
+  const approved=baseline.specialists[String(row?.id||builtinProfileId(person.slug)||'')];
+  if(!approved||row?.image_url&&typeof row.image_url==='string'&&isAllowedImageUrl(row.image_url))return person;
+  return {...person,photo:approved.image_url,photoFit:approved.photo_fit,
+   photoPositionX:approved.photo_position_x,photoPositionY:approved.photo_position_y};
+ });
  const icons=['activity','heart','brain','leaf','sparkles','shield'];
  const services=reconcileSpecialties(servicesRows as unknown as DbSpecialty[],mode.specialties===true).map(service=>{
-  const previous=oldSpecialties[service.slug];
-  const icon=icons.includes(previous?.icon||'')?previous!.icon as Specialty['icon']:service.icon;
-  const image=(service.image&&isAllowedImageUrl(service.image)?service.image:
-   previous?.image&&isAllowedImageUrl(previous.image)?previous.image:undefined);
+  const approved=baseline.specialties[service.slug];
+  const icon=icons.includes(approved?.icon||'')?approved!.icon as Specialty['icon']:service.icon;
+  const image=service.image&&isAllowedImageUrl(service.image)?service.image:
+   approved?.image_url&&isAllowedImageUrl(approved.image_url)?approved.image_url:undefined;
   return {...service,icon,image};
  });
- const visuals:SiteVisuals={};
- if(typeof legacy.heroImage==='string'&&isAllowedImageUrl(legacy.heroImage))visuals.hero=legacy.heroImage;
- const preferred=setting('site_visuals');
- if(preferred&&typeof preferred==='object'&&!Array.isArray(preferred)){
-  const value=preferred as Record<string,unknown>;
-  for(const key of visualKeys)if(typeof value[key]==='string'&&value[key]&&isAllowedImageUrl(value[key]))visuals[key]=value[key];
-  if(value.heroFit==='cover'||value.heroFit==='contain')visuals.heroFit=value.heroFit;
-  for(const key of ['heroPositionX','heroPositionY'] as const){
-   const coordinate=value[key];
-   if(typeof coordinate==='number'&&Number.isFinite(coordinate))visuals[key]=Math.max(0,Math.min(100,Math.round(coordinate)));
-  }
- }
+ const visuals:SiteVisuals=currentVisuals(store);
  const articles=sortBy(items(store,'blog_posts').filter(r=>r.status==='published'),'published_at',false).slice(0,20).map(r=>({
   id:text(r.id),title_ar:text(r.title_ar),title_en:text(r.title_en),excerpt_ar:text(r.excerpt_ar),excerpt_en:text(r.excerpt_en),
   body_ar:text(r.body_ar),body_en:text(r.body_en),cover_image_url:typeof r.cover_image_url==='string'&&isAllowedImageUrl(r.cover_image_url)?r.cover_image_url:null

@@ -3,6 +3,7 @@ import {useCallback,useEffect,useState} from 'react';
 import {ImagePlus,RefreshCw,Save,ShieldCheck,UploadCloud,Eye,EyeOff} from 'lucide-react';
 import {createClient} from '@/lib/cms-client';
 import {profiles,specialties,type Profile,type Specialty} from '@/lib/clinic-data';
+import {approvedProfileMedia} from '@/lib/approved-visual-media';
 import {builtinProfileId,profileById,CATALOG_SETTING_KEY,type CatalogMode} from '@/lib/catalog';
 import {isAllowedImageUrl} from '@/lib/image-urls';
 import AdminImagePreview from '@/components/admin-image-preview';
@@ -97,7 +98,7 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
    category:(()=>{const link=relations.find(x=>x.specialist_id===r?.id);const service=specialtyRows.find(x=>x.id===link?.specialty_id);return specialties.find(s=>s.slug===service?.slug)?.category||p?.category||'physical'})(),
    qualifications:r?toLines(r.qualifications):p?.qualifications.join('\n')||'',
    conditions_ar:r?toLines(r.conditions_ar):p?.services.join('\n')||'',
-   image_url:String(r?.image_url||p?.photo||''),
+   image_url:String(r?.image_url||approvedProfileMedia(String(r?.id||builtinProfileId(item.identifier)||''))?.image_url||p?.photo||''),
    photo_fit:String(r?.photo_fit||p?.photoFit||'contain'),
    photo_position_x:String(r?.photo_position_x??p?.photoPositionX??50),
    photo_position_y:String(r?.photo_position_y??p?.photoPositionY??100)
@@ -207,7 +208,7 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
  <div className="card p-6"><h3 className="text-xl font-bold mb-4">{team?'الأخصائيون والأخصائيات':'التخصصات'} ({display.length})</h3><div className="grid gap-3">{display.map(item=>{
   const r=item.record;const p=item.source as Profile|null;const s=item.source as Specialty|null;
   const name=String(r?.name_ar||(team?p?.nameAr:s?.nameAr)||'ملف جديد');
-  const image=String(r?.image_url||(team?p?.photo:s?.image)||'');
+  const image=String(r?.image_url||(team?approvedProfileMedia(String(r?.id||builtinProfileId(item.identifier)||''))?.image_url||p?.photo:s?.image)||'');
   const isVisible=r?.is_published??true;
   return <div key={item.identifier} className="rounded-2xl border border-[#eee7ed] p-3 flex gap-4 items-center flex-wrap"><div className="h-20 w-20 shrink-0 rounded-xl bg-[#fbf4f9] overflow-hidden flex items-center justify-center"><AdminImagePreview src={image} alt={name} fit="contain" emptyLabel="بدون صورة"/></div><div className="flex-1 min-w-[145px]"><strong className="block text-sm">{name}</strong><span className="text-xs text-slate-500">{r?(isVisible?'منشور':'مخفي'):'من ملفات المركز (غير مستورد)'}</span></div><div className="flex gap-2 flex-wrap"><button className="button-outline !p-2 !min-h-[38px]" onClick={()=>start(item)} aria-label={'تعديل '+name}>تعديل</button><button className="button-outline !p-2 !min-h-[38px]" onClick={()=>toggle(item)} disabled={!mode[module]} aria-label={(isVisible?'إخفاء ':'إظهار ')+name}>{isVisible?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></div>
  })}</div></div></div></div>;

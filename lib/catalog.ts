@@ -4,6 +4,7 @@
  */
 import {profiles, specialties, type Profile, type Specialty} from './clinic-data';
 import {isAllowedImageUrl} from './image-urls';
+import {approvedProfileMedia} from './approved-visual-media';
 
 export const CATALOG_SETTING_KEY = 'published_catalog_mode';
 export type CatalogMode = {team?:boolean; specialties?:boolean};
@@ -15,7 +16,7 @@ export const builtinProfileId = (slug:string) => {
 export const profileById = (id:string) => profiles.find(p=>builtinProfileId(p.slug)===id);
 export function seedProfile(p:Profile){
   return {id:builtinProfileId(p.slug),name_ar:p.nameAr,name_en:p.nameEn,title_ar:p.titleAr,title_en:p.titleEn,
-    bio_ar:p.summaryAr,bio_en:p.summaryEn,image_url:p.photo,department:p.department,
+    bio_ar:p.summaryAr,bio_en:p.summaryEn,image_url:approvedProfileMedia(builtinProfileId(p.slug)||'')?.image_url||p.photo,department:p.department,
     qualifications:p.qualifications,conditions_ar:p.services,conditions_en:[],languages:[],is_published:true};
 }
 export function seedSpecialty(s:Specialty){
@@ -27,7 +28,7 @@ export type DbSpecialty={id?:string;slug:string|null;name_ar:string;name_en:stri
 const stringArray=(x:unknown):string[]=>Array.isArray(x)?x.filter((v):v is string=>typeof v==='string'):[];
 const photoCoordinate=(value:unknown,fallback:number)=>typeof value==='number'&&Number.isFinite(value)?Math.max(0,Math.min(100,Math.round(value))):fallback;
 export function reconcileProfiles(records:DbProfile[],managed:boolean,categories:Record<string,string>={}):Profile[]{
-  const team=managed?[]:[...profiles];
+  const team=managed?[]:profiles.map(p=>({...p,photo:approvedProfileMedia(builtinProfileId(p.slug)||'')?.image_url||p.photo}));
   for(const r of records){
     const base=profileById(r.id)||profiles.find(p=>p.nameAr===r.name_ar);
     const category=categories[r.id]||base?.category||'physical';
@@ -35,7 +36,7 @@ export function reconcileProfiles(records:DbProfile[],managed:boolean,categories
       titleAr:r.title_ar||base?.titleAr||'',titleEn:r.title_en||base?.titleEn||'',
       summaryAr:r.bio_ar||base?.summaryAr||'',summaryEn:r.bio_en||base?.summaryEn||'',
       department:r.department==='men'?'men':'women',category,
-      photo:r.image_url&&isAllowedImageUrl(r.image_url)?r.image_url:base?.photo||'/assets/alhabib-logo.webp',
+      photo:r.image_url&&isAllowedImageUrl(r.image_url)?r.image_url:approvedProfileMedia(r.id)?.image_url||base?.photo||'/assets/alhabib-logo.webp',
       photoFit:r.photo_fit==='cover'?'cover':'contain',
       photoPositionX:photoCoordinate(r.photo_position_x,50),photoPositionY:photoCoordinate(r.photo_position_y,100),
       qualifications:stringArray(r.qualifications).length?stringArray(r.qualifications):base?.qualifications||[],
