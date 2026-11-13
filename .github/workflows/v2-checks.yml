@@ -37,4 +37,40 @@ jobs:
         run: npm run test:neon-cutover
       - name: Public first-render image regression checks
         run: npm run test:public-images
-      - name: Public so¶»§q«^
+      - name: Public social links, admin settings and platform URL checks
+        run: npm run test:social
+      - name: V3 database and upload isolation checks
+        run: npm run test:v3
+      - name: TypeScript check
+        run: npm run lint
+      - name: Production build
+        run: npm run build
+      - name: HTTP smoke tests for public routes
+        run: npm run smoke:http
+
+  browser:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
+      - name: Install Chromium and its system libraries
+        run: npx playwright install --with-deps chromium
+      - name: Build for local browser acceptance tests
+        run: npm run build
+      - name: Chromium acceptance tests
+        run: npm run test:browser
+      - name: Store browser failure traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-v3-failures
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

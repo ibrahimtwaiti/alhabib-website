@@ -14,4 +14,12 @@ Preview CMS writing requires V3_PREVIEW_DATABASE_URL, a distinct Neon hostname f
 
 ## Neon backup limits and incident
 
-On 13 November 2026 Neon rejected creatio¶»§q«^
+On 13 November 2026 Neon rejected creation of a second manual snapshot: snapshots limit exceeded. The existing snapshot restore action unexpectedly finalized into the original default branch and moved the Production compute. The incident was reversed: original production branch is again the default and its original compute endpoint was reassigned, and CMS version 64 with ten specialists and seven specialties was re-verified. A restored copy from the older snapshot remains as the separate non-default branch the isolated test branch. No old snapshot or production content was intentionally deleted.
+
+Never call restore_snapshot with its default finalization just to test restore. Use an independently isolated Neon test project, or only a workflow explicitly documented and proven NOT to transfer the production compute. Finalization or branch switching requires separate release approval.
+
+Daily/weekly automatic snapshot scheduling is NOT active due to the snapshot quota. Next steps: upgrade Neon snapshot capacity or implement encrypted, independently retained off-site backups with a tested runbook. Do not overwrite the existing manual snapshot before a reliable alternative exists.
+
+## Before merge and deployment
+
+Verify required branch rules and successful PR checks; test login/logout and CMS writes on a genuinely isolated Preview; check the Neon production default branch and compute endpoint; validate backup restore policy; obtain explicit production deployment authorization. Roll back code changes through reviewed PRs, not through production database snapshot finalize.

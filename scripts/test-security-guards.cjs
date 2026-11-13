@@ -24,4 +24,18 @@ vm.runInNewContext(js,{exports:routeExports,require:name=>{
 },Response,console,Date},{timeout:3000});
 const request=(body,options={})=>new Request('https://clinic.test/api/admin/login',{
  method:'POST',headers:{origin:options.origin??'https://clinic.test','content-type':options.type??'application/json',...(options.length?{'content-length':String(options.length)}:{})},
- body:typeof body==='string'?body:JSON.stringify(body¶»§q«^
+ body:typeof body==='string'?body:JSON.stringify(body)});
+(async()=>{
+ assert.equal((await routeExports.POST(request({username:'admin',password:'CorrectPassword#2026'},{origin:'https://attacker.test'}))).status,403);
+ assert.equal((await routeExports.POST(request({username:'admin',password:'CorrectPassword#2026'},{type:'text/plain'}))).status,415);
+ assert.equal((await routeExports.POST(request({username:'admin',password:'CorrectPassword#2026'},{length:5000}))).status,413);
+ assert.equal((await routeExports.POST(request('not-json'))).status,400);
+ assert.equal((await routeExports.POST(request({username:'admin',password:'x'.repeat(4097)}))).status,413);
+ for(let i=0;i<5;i++)assert.equal((await routeExports.POST(request({username:'admin',password:'incorrect'}))).status,401);
+ assert.ok(users[0].locked_until>Date.now(),'5 incorrect logins lock the account');
+ assert.equal((await routeExports.POST(request({username:'admin',password:'CorrectPassword#2026'}))).status,401,'locked user cannot log in');
+ users[0].locked_until=0;
+ assert.equal((await routeExports.POST(request({username:'admin',password:'CorrectPassword#2026'}))).status,200);
+ assert.equal(signed,1);
+ console.log('Login request validation, lockout and CSRF regression checks passed');
+})().catch(e=>{console.error(e);process.exitCode=1});

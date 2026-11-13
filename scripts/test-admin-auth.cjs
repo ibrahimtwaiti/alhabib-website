@@ -17,4 +17,10 @@ assert.equal(target.hasAccess({role:'admin',permissions:{specialists:true}},'spe
 assert.equal(target.hasAccess({role:'admin',permissions:{specialists:true}},'users'),false);
 (async()=>{
  const mk=(url,origin,site)=>({url,headers:{get:(key)=>key==='origin'?origin:key==='sec-fetch-site'?site:null}});
- assert.equal(await target.validateOrigin(mk('h¶»§q«^
+ assert.equal(await target.validateOrigin(mk('https://clinic.example/api/admin/login','https://clinic.example','same-origin')),true);
+ assert.equal(await target.validateOrigin(mk('https://clinic.example/api/admin/login',null,'same-origin')),false,'missing Origin blocked');
+ assert.equal(await target.validateOrigin(mk('https://clinic.example/api/admin/login','https://attacker.example','cross-site')),false);
+ assert.equal(await target.validateOrigin(mk('https://clinic.example/api/admin/login','https://clinic.example','cross-site')),false,'spoofed Fetch Site blocked');
+ assert.equal(await target.validateOrigin(mk('https://clinic.example/api/admin/login','https://clinic.example:443/path',null)),false);
+ console.log('Admin authentication and CSRF origin guards: 13 checks passed');
+})().catch(error=>{console.error(error);process.exitCode=1});
