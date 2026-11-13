@@ -17,7 +17,8 @@ export async function GET(){
 export async function POST(req:Request){
  const user=await currentUser();
  if(user?.role!=='super_admin')return fail('اعتماد واستعادة النسخة الافتراضية متاحان للمدير الرئيسي فقط',403);
- if(!await validateOrigin(req))return fail('طلب غير موثوق',403);
+ const fetchSite=req.headers.get('sec-fetch-site');
+ if(!req.headers.get('origin')||(fetchSite&&fetchSite!=='same-origin')||!await validateOrigin(req))return fail('طلب غير موثوق',403);
  if(req.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase()!=='application/json')return fail('نوع الطلب غير صالح',415);
  if(Number(req.headers.get('content-length')||0)>512)return fail('حجم الطلب غير صالح',413);
  let action:unknown;

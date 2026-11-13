@@ -51,4 +51,7 @@ assert.equal(store.tables.site_settings.filter(x=>x.key===VISUAL_BASELINE_KEY).l
 assert.equal(getVisualBaseline(store).visuals.hero,'/assets/v4-approved.webp','new snapshot replaces former default');
 assert.ok(!fs.readFileSync('lib/public-site-data.ts','utf8').includes('specialty_visuals'),'obsolete V1 fallback removed');
 assert.ok(!fs.readFileSync('components/admin-visuals.tsx','utf8').includes("'/assets/team/heba-alhabib.webp'"),'admin no old preview fallback');
-console.log('Approved visual baseline: 18 assertions passed');
+const routeSource=fs.readFileSync('app/api/admin/visual-baseline/route.ts','utf8');
+assert.ok(routeSource.includes("!req.headers.get('origin')"),'mutating baseline API fails closed without Origin');
+assert.ok(routeSource.includes("fetchSite!=='same-origin'"),'reject cross-site browser fetches');
+console.log('Approved visual baseline: 20 assertions passed');
