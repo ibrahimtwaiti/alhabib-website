@@ -1,0 +1,44 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const ts=require('typescript');
+require.extensions['.ts']=(mod,filename)=>{
+ const js=ts.transpileModule(fs.readFileSync(filename,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
+ mod._compile(js,filename);
+};
+const {importClinicCatalog}=require('../lib/catalog-import.ts');
+const {publicDataFromStore}=require('../lib/public-site-data.ts');
+const {matchesSpecialistSpecialty,linkedSpecialtySlugs}=require('../lib/specialist-specialties.ts');
+const {profiles}=require('../lib/clinic-data.ts');
+const store={users:[],updated_at:'',tables:{}};
+importClinicCatalog(store,'team');
+const profile=store.tables.specialists.find(p=>p.name_ar===profiles[0].nameAr);
+assert.ok(profile);
+const serviceBySlug=(slug)=>store.tables.specialties.find(s=>s.slug===slug);
+const initial=publicDataFromStore(store);
+assert.deepEqual(initial.people.find(p=>p.nameAr===profiles[0].nameAr).specialtySlugs,['physical-therapy']);
+const another=serviceBySlug('sports-rehabilitation');
+const custom={id:'99999999-0000-4000-8000-000000000001',slug:'advanced-mobility',name_ar:'الحركة المتقدمة',name_en:'Advanced Mobility',description_ar:'خدمة جديدة',description_en:'New care',is_published:true};
+store.tables.specialties.push(custom);
+store.tables.specialist_specialties.push(
+ {id:'link-b',specialist_id:profile.id,specialty_id:another.id},
+ {id:'link-c',specialist_id:profile.id,specialty_id:custom.id});
+let published=publicDataFromStore(store);
+const person=published.people.find(p=>p.nameAr===profiles[0].nameAr);
+assert.deepEqual([...person.specialtySlugs].sort(),['physical-therapy','sports-rehabilitation','advanced-mobility'].sort());
+assert.ok(published.services.some(s=>s.slug==='advanced-mobility'),'new specialties appear in public booking list');
+for(const slug of person.specialtySlugs)assert.ok(matchesSpecialistSpecialty(person,published.services.find(s=>s.slug===slug)),'eligible for '+slug);
+const other=published.people.find(p=>p.nameAr===profiles[1].nameAr);
+assert.equal(matchesSpecialistSpecialty(other,published.services.find(s=>s.slug==='advanced-mobility')),false,'new service does not accidentally match all physical therapists');
+assert.ok(fs.readFileSync('components/public-site-client.tsx','utf8').includes('people.filter(x=>matchesSpecialistSpecialty(x,s))'),'specialty detail pages use exact CMS membership too');
+assert.equal(matchesSpecialistSpecialty({category:'physical'},published.services.find(s=>s.slug==='physical-therapy')),true,'bundled offline fallback works');
+assert.equal(matchesSpecialistSpecialty({category:'physical',specialtySlugs:[]},published.services.find(s=>s.slug==='physical-therapy')),false,'explicit CMS empty links are not replaced by legacy category');
+assert.deepEqual(linkedSpecialtySlugs(profile.id,store.tables.specialist_specialties,store.tables.specialties).sort(),person.specialtySlugs.slice().sort());
+custom.is_published=false;
+published=publicDataFromStore(store);
+assert.equal(published.services.some(s=>s.slug==='advanced-mobility'),false,'unpublished specialty must not appear');
+assert.equal(published.people.find(p=>p.nameAr===profiles[0].nameAr).specialtySlugs.includes('advanced-mobility'),false,'unpublished service link must not be selectable');
+custom.is_published=true;
+profile.is_published=false;
+published=publicDataFromStore(store);
+assert.ok(!published.people.some(p=>p.nameAr===profiles[0].nameAr),'unpublished specialist is excluded');
+console.log('Specialist multi-specialty booking and dynamic-specialty projections: passed');

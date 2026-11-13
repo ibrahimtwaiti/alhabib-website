@@ -55,7 +55,9 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
  const allowed=can(profile,key);const owner=profile.role==='super_admin';
  const [rows,setRows]=useState<AnyRecord[]>([]);const [mode,setMode]=useState<CatalogMode>({});
  const [loaded,setLoaded]=useState(false);
- const [specialtyRows,setSpecialtyRows]=useState<{id:string;slug:string}[]>([]);const [relations,setRelations]=useState<{specialist_id:string;specialty_id:string}[]>([]);
+ const [specialtyRows,setSpecialtyRows]=useState<{id:string;slug:string;name_ar:string;is_published:boolean}[]>([]);
+ const [relations,setRelations]=useState<{specialist_id:string;specialty_id:string}[]>([]);
+ const [selectedSpecialtyIds,setSelectedSpecialtyIds]=useState<string[]>([]);
  const [editing,setEditing]=useState<string|null>(null);const [form,setForm]=useState<Record<string,string>>({});
  const [file,setFile]=useState<File|null>(null);const [preview,setPreview]=useState('');
  const [published,setPublished]=useState(true);const [busy,setBusy]=useState(false);
@@ -70,7 +72,16 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
   if(r.error)throw r.error;
   if(s.error)throw s.error;
   setRows((r.data||[]) as AnyRecord[]);setMode((s.data?.value||{}) as CatalogMode);
-  if(team){const [ss,rr]=await Promise.all([db.from('specialties').select('id,slug'),db.from('specialist_specialties').select('specialist_id,specialty_id')]);if(ss.data)setSpecialtyRows(ss.data.filter((x:{id:string;slug:string|null})=>x.slug) as {id:string;slug:string}[]);if(rr.data)setRelations(rr.data)}
+  if(team){
+   const [ss,rr]=await Promise.all([
+    db.from('specialties').select('id,slug,name_ar,is_published').order('sort_order',{ascending:true}),
+    db.from('specialist_specialties').select('specialist_id,specialty_id')
+   ]);
+   if(ss.error)throw ss.error;
+   if(rr.error)throw rr.error;
+   setSpecialtyRows((ss.data||[]).filter((row:{id?:string;slug?:string})=>!!row.id&&!!row.slug));
+   setRelations(rr.data||[]);
+  }
   setLoaded(true);
  },[key]);
  useEffect(()=>{if(!allowed)return;let active=true;(async()=>{try{await reload()}catch(e){if(active)setError((e as Error).message)}})();return()=>{active=false}},[allowed,reload,fresh]);
@@ -89,13 +100,19 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
   const p=team?source as Profile|undefined:undefined;
   const s=!team?source as Specialty|undefined:undefined;
   setEditing(item.identifier);
+  if(team){
+   const specialistId=String(r?.id||builtinProfileId(item.identifier)||'');
+   const linked=relations.filter(link=>link.specialist_id===specialistId&&specialtyRows.some(row=>row.id===link.specialty_id)).map(link=>link.specialty_id);
+   const fallbackSlug=specialties.find(service=>service.category===(p?.category||''))?.slug;
+   const fallback=linked.length?[]:specialtyRows.filter(row=>row.slug===fallbackSlug).map(row=>row.id);
+   setSelectedSpecialtyIds([...new Set([...linked,...fallback])]);
+  }else setSelectedSpecialtyIds([]);
   setForm(team?{
    id:String(r?.id||builtinProfileId(item.identifier)||''),
    name_ar:String(r?.name_ar||p?.nameAr||''),name_en:String(r?.name_en||p?.nameEn||''),
    title_ar:String(r?.title_ar||p?.titleAr||''),title_en:String(r?.title_en||p?.titleEn||''),
    bio_ar:String(r?.bio_ar||p?.summaryAr||''),bio_en:String(r?.bio_en||p?.summaryEn||''),
    department:String(r?.department||p?.department||'women'),
-   category:(()=>{const link=relations.find(x=>x.specialist_id===r?.id);const service=specialtyRows.find(x=>x.id===link?.specialty_id);return specialties.find(s=>s.slug===service?.slug)?.category||p?.category||'physical'})(),
    qualifications:r?toLines(r.qualifications):p?.qualifications.join('\n')||'',
    conditions_ar:r?toLines(r.conditions_ar):p?.services.join('\n')||'',
    image_url:String(r?.image_url||approvedProfileMedia(String(r?.id||builtinProfileId(item.identifier)||''))?.image_url||p?.photo||''),
@@ -111,7 +128,7 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
   chooseImage(null);setPublished(r?.is_published??true);setError('');setNotice('');
   window.scrollTo({top:0,behavior:'smooth'});
  }
- function reset(){setEditing(null);setForm({});chooseImage(null);setPublished(true)}
+ function reset(){setEditing(null);setForm({});setSelectedSpecialtyIds([]);chooseImage(null);setPublished(true)}
  function field(k:string,label:string,multiline=false,required=false){return <div key={k}><label htmlFor={'catalog-'+k} className="label">{label}</label>{multiline?<textarea id={'catalog-'+k} rows={3} className="field" value={form[k]||''} onChange={e=>setForm(x=>({...x,[k]:e.target.value}))}/>:<input id={'catalog-'+k} className="field" required={required} dir={k.endsWith('_en')?'ltr':undefined} value={form[k]||''} onChange={e=>setForm(x=>({...x,[k]:e.target.value}))}/>}</div>}
  async function importBundled(){
   if(!owner)return;
@@ -131,20 +148,24 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
   }catch(e){setError((e as Error).message)}finally{setBusy(false)}
  }
  async function save(e:React.FormEvent){
-  e.preventDefault();if(!allowed)return;setBusy(true);setError('');setNotice('');
+  e.preventDefault();if(!allowed)return;
+  if(team&&(!selectedSpecialtyIds.length||selectedSpecialtyIds.some(id=>!specialtyRows.some(row=>row.id===id)))){
+   setError('اختر تخصصاً واحداً على الأقل من التخصصات المحفوظة، ثم احفظ الملف.');return;
+  }
+  setBusy(true);setError('');setNotice('');
   try{
-   const db=createClient();const image=file?await uploadPublicImage(file,team?'specialists':'specialties'):form.image_url.trim();
+   const db=createClient();const image=file?await uploadPublicImage(file,team?'specialists':'specialties'):(form.image_url||'').trim();
    if(!isAllowedImageUrl(image))throw new Error('رابط الصورة غير صالح. أدخل رابط HTTPS مباشر للصورة أو استخدم صورة من الموقع.');
    const payload:Record<string,unknown>=team?{
-    name_ar:form.name_ar.trim(),name_en:form.name_en.trim(),title_ar:form.title_ar.trim(),title_en:form.title_en.trim(),
-    bio_ar:form.bio_ar.trim(),bio_en:form.bio_en.trim(),department:form.department||'women',
+    name_ar:(form.name_ar||'').trim(),name_en:(form.name_en||'').trim(),title_ar:(form.title_ar||'').trim(),title_en:(form.title_en||'').trim(),
+    bio_ar:(form.bio_ar||'').trim(),bio_en:(form.bio_en||'').trim(),department:form.department||'women',
     qualifications:fromLines(form.qualifications||''),conditions_ar:fromLines(form.conditions_ar||''),
     image_url:image||null,photo_fit:form.photo_fit==='cover'?'cover':'contain',
     photo_position_x:Math.max(0,Math.min(100,Number(form.photo_position_x)||0)),
     photo_position_y:Math.max(0,Math.min(100,Number(form.photo_position_y)||0)),is_published:published
    }:{
-    slug:form.slug.trim(),name_ar:form.name_ar.trim(),name_en:form.name_en.trim(),
-    description_ar:form.description_ar.trim(),description_en:form.description_en.trim(),
+    slug:(form.slug||'').trim(),name_ar:(form.name_ar||'').trim(),name_en:(form.name_en||'').trim(),
+    description_ar:(form.description_ar||'').trim(),description_en:(form.description_en||'').trim(),
     image_url:image||null,is_published:published
    };
    if(!payload.name_ar||!payload.name_en)throw new Error('الاسم بالعربية والإنجليزية مطلوب');
@@ -153,16 +174,14 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
    if(team){
     const existing=rows.find(r=>r.id===form.id);
     const fallback=profileById(form.id);
-    if(existing){const {error}=await db.from('specialists').update(payload).eq('id',existing.id);if(error)throw error}
-    const newId=fallback?form.id:crypto.randomUUID();
-    if(!existing){const {error}=await db.from('specialists').insert({...payload,id:newId,languages:[],conditions_en:[]});if(error)throw error}
-    const savedId=existing?.id||newId;
-    const chosen=specialties.find(s=>s.category===form.category);
-    const storedService=specialtyRows.find(s=>s.slug===chosen?.slug);
-    if(savedId&&storedService){
-      const {error:removeError}=await db.from('specialist_specialties').delete().eq('specialist_id',savedId);if(removeError)throw removeError;
-      const {error:linkError}=await db.from('specialist_specialties').insert({specialist_id:savedId,specialty_id:storedService.id});if(linkError)throw linkError;
-    }
+    const savedId=existing?.id||(fallback?form.id:crypto.randomUUID());
+    const response=await fetch('/api/admin/specialists/save',{
+     method:'POST',credentials:'same-origin',cache:'no-store',
+     headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({specialistId:savedId,payload,specialtyIds:selectedSpecialtyIds})
+    });
+    const result=await response.json().catch(()=>({error:'تعذر قراءة رد الخادم'}));
+    if(!response.ok)throw new Error(result.error||'تعذر حفظ التخصصات المرتبطة بالأخصائي');
    }else{
     const existing=rows.find(r=>r.id===form.id&&!!form.id);
     if(existing){const {error}=await db.from('specialties').update(payload).eq('id',existing.id);if(error)throw error}
@@ -185,7 +204,17 @@ export default function AdminCatalog({module,profile}:{module:Mode;profile:Admin
  <div className="card p-6 xl:sticky xl:top-5"><h3 className="text-xl font-bold mb-4">{editing?'تعديل بيانات وصورة':'إضافة ملف جديد'}</h3><form onSubmit={save} className="space-y-4">
  {!team&&field('slug','الرابط المختصر بالإنجليزية (slug)',false,true)}
  {field('name_ar',team?'الاسم بالعربية':'اسم التخصص بالعربية',false,true)}{field('name_en','English name',false,true)}
- {team?<>{field('title_ar','المسمى الوظيفي بالعربية')}{field('title_en','English title')}{field('bio_ar','نبذة عربية',true)}{field('bio_en','English biography',true)}{field('qualifications','المؤهلات والخبرات — كل سطر مستقل',true)}{field('conditions_ar','الخدمات والحالات — كل سطر مستقل',true)}<div><label className="label">القسم</label><select className="field" value={form.department||'women'} onChange={e=>setForm(x=>({...x,department:e.target.value}))}><option value="women">النساء</option><option value="men">الرجال</option></select></div><div><label className="label">التخصص الرئيسي (للتصفية في الحجز)</label><select className="field" value={form.category||'physical'} onChange={e=>setForm(x=>({...x,category:e.target.value}))}>{specialties.map(s=><option key={s.category} value={s.category}>{s.nameAr}</option>)}</select><p className="text-xs text-slate-500 mt-1">لربط الأخصائي المضاف حديثاً بالتخصص يجب استيراد التخصصات من لوحة الإدارة أولاً.</p></div></>:<>{field('description_ar','الوصف بالعربية',true)}{field('description_en','English description',true)}</>}
+ {team?<>{field('title_ar','المسمى الوظيفي بالعربية')}{field('title_en','English title')}{field('bio_ar','نبذة عربية',true)}{field('bio_en','English biography',true)}{field('qualifications','المؤهلات والخبرات — كل سطر مستقل',true)}{field('conditions_ar','الخدمات والحالات — كل سطر مستقل',true)}<div><label className="label">القسم</label><select className="field" value={form.department||'women'} onChange={e=>setForm(x=>({...x,department:e.target.value}))}><option value="women">النساء</option><option value="men">الرجال</option></select></div><fieldset className="rounded-xl border border-[#e9dbe6] bg-[#fcfafc] p-4">
+ <legend className="label px-2">التخصصات المرتبطة بالأخصائي (للتصفية في الحجز)</legend>
+ <p className="text-xs text-slate-600 mb-3">اختر تخصصاً واحداً أو أكثر. سيظهر الأخصائي في الحجز ضمن جميع التخصصات المحددة. القائمة تُجلب من التخصصات المحفوظة في إدارة المركز.</p>
+ {specialtyRows.length?<div role="group" aria-label="اختيار تخصصات الأخصائي" className="grid gap-2 max-h-64 overflow-y-auto">
+  {specialtyRows.map(service=><label key={service.id} className="flex items-start gap-3 rounded-xl bg-white border border-[#efe5ec] p-3 cursor-pointer hover:border-[#c89ab8]">
+   <input type="checkbox" aria-label={service.name_ar} checked={selectedSpecialtyIds.includes(service.id)} disabled={busy} onChange={event=>setSelectedSpecialtyIds(current=>event.target.checked?[...new Set([...current,service.id])]:current.filter(id=>id!==service.id))} className="accent-[#8d517a] mt-1 h-4 w-4 shrink-0"/>
+   <span className="text-sm font-medium">{service.name_ar}{!service.is_published&&<span className="block text-xs text-amber-700 mt-1">غير منشور — لن يظهر في الحجز حتى نشر التخصص</span>}</span>
+  </label>)}
+ </div>:<p role="status" className="text-sm text-amber-800">لا توجد تخصصات محفوظة. أضف تخصصاً من قسم «التخصصات» ثم عد إلى الأخصائيين.</p>}
+ <p className="text-xs text-slate-600 mt-3">التخصصات المحددة: {selectedSpecialtyIds.length} من {specialtyRows.length}</p>
+ </fieldset></>:<>{field('description_ar','الوصف بالعربية',true)}{field('description_en','English description',true)}</>}
  <div className="rounded-2xl border border-[#eedce9] bg-[#fbf7fa] p-4">
  <label htmlFor="catalog-image-link" className="label flex gap-2 items-center"><ImagePlus size={18}/>{team?'الصورة الشخصية للأخصائي':'صورة التخصص'} — برابط مباشر</label>
  <p className="text-sm text-slate-600 mb-3">يمكنك رفع صورة من جهازك أو لصق رابط HTTPS مباشر. سيتم حفظ الصورة الجديدة بمعرف مختلف دون الكتابة فوق الصورة السابقة.</p>

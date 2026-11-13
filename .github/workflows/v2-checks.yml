@@ -20,6 +20,8 @@ jobs:
         run: npm run test:v2
       - name: Appointment message and date regression tests
         run: npm run test:booking
+      - name: Dynamic multi-specialty booking and atomic specialist save checks
+        run: npm run test:multi-specialty && npm run test:specialist-save
       - name: Username/password security checks
         run: npm run test:admin
       - name: Catalog import and image URL regression checks

@@ -21,7 +21,9 @@
     "test:public-images": "node scripts/test-public-images.cjs",
     "test:social": "node scripts/test-social-links.cjs",
     "test:v3": "node scripts/test-v3-guards.cjs && node scripts/test-v3-motion.cjs && node scripts/test-v3-upload.cjs",
-    "test:visual-baseline": "node scripts/test-visual-baseline.cjs"
+    "test:visual-baseline": "node scripts/test-visual-baseline.cjs",
+    "test:multi-specialty": "node scripts/test-multi-specialty.cjs",
+    "test:specialist-save": "node scripts/test-specialist-save.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

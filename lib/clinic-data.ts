@@ -4,6 +4,8 @@ export type Language = 'ar' | 'en';
 export type Profile = {
   slug: string; nameAr: string; nameEn: string; titleAr: string; titleEn: string;
   department: 'men' | 'women'; category: string; photo: string;
+  /** Published specialty slugs linked in CMS. When present, booking filters by these exact slugs. */
+  specialtySlugs?:string[];
   photoFit?:'cover'|'contain';photoPositionX?:number;photoPositionY?:number;
   summaryAr: string; summaryEn: string; qualifications: string[]; services: string[];
 };
