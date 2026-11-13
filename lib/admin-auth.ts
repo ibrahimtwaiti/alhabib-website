@@ -1,6 +1,6 @@
 import 'server-only';
 import {createHmac,randomBytes,scryptSync,timingSafeEqual} from 'node:crypto';
-import {cookies,headers} from 'next/headers';
+import {cookies} from 'next/headers';
 import {readCms,type CmsUser} from './cms-store';
 
 const COOKIE='alhabib_admin_session';
@@ -21,4 +21,17 @@ export async function currentUser():Promise<CmsUser|null>{try{
  }catch{return null}}
 export function hasAccess(user:CmsUser|null,key:string){return !!user&&(user.role==='super_admin'||user.permissions?.[key]===true)}
 export function publicUser(user:CmsUser){return {id:user.id,username:user.username,full_name:user.full_name,role:user.role,permissions:user.permissions,is_active:user.is_active,created_at:user.created_at}}
-export async function validateOrigin(request:Request){const origin=request.headers.get('origin');if(!origin)return true;try{return new URL(origin).host===(await headers()).get('host')}catch{return false}}
+/** Unsafe requests require a same-origin initiator; missing Origin fails closed. */
+export async function validateOrigin(request:Request):Promise<boolean>{
+ const supplied=request.headers.get('origin');
+ if(!supplied)return false;
+ const fetchSite=request.headers.get('sec-fetch-site');
+ if(fetchSite&&fetchSite!=='same-origin')return false;
+ try{
+  const requested=new URL(request.url);
+  const origin=new URL(supplied);
+  if(origin.username||origin.password||origin.pathname!=='/'||origin.search||origin.hash)return false;
+  if(requested.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(requested.hostname))return false;
+  return origin.origin===requested.origin;
+ }catch{return false}
+}

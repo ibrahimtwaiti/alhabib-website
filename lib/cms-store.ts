@@ -22,12 +22,15 @@ export function canWriteCms(){
  if(!isV3Preview())return true;
  const isolated=process.env.V3_PREVIEW_DATABASE_URL;
  const primary=process.env.DATABASE_URL||process.env.POSTGRES_URL;
- if(!isolated||!/^postgres(?:ql)?:\/\//i.test(isolated))return false;
+ // Non-secret production hostname; missing guard means read-only previews.
+ const productionHost=process.env.ALHABIB_PRODUCTION_DATABASE_HOST?.trim().toLowerCase();
+ if(!isolated||!primary||!productionHost||!/^postgres(?:ql)?:\/\//i.test(isolated))return false;
  try{
   const branch=new URL(isolated);
-  if(!primary)return true;
   const live=new URL(primary);
-  return branch.hostname!==live.hostname||branch.pathname!==live.pathname;
+  if(!branch.hostname.endsWith('.neon.tech')||!live.hostname.endsWith('.neon.tech'))return false;
+  // Separate databases on the same endpoint are not independent branches.
+  return branch.hostname!==live.hostname&&branch.hostname!==productionHost;
  }catch{return false}
 }
 export function cmsUsesPostgres(){return Boolean(cmsDatabaseUrl())}

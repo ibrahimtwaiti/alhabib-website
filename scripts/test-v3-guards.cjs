@@ -6,7 +6,7 @@ const vm=require('node:vm');
 const ts=require('typescript');
 const source=fs.readFileSync(path.join(__dirname,'../lib/cms-store.ts'),'utf8');
 const compiled=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS}}).outputText;
-const env={VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'version-3',DATABASE_URL:'postgresql://prod:secret@prod.example/neondb'};
+const env={VERCEL_ENV:'preview',VERCEL_GIT_COMMIT_REF:'version-3',DATABASE_URL:'postgresql://prod:secret@prod.example.neon.tech/neondb'};
 const moduleObject={exports:{}};
 vm.runInNewContext(compiled,{
  module:moduleObject,exports:moduleObject.exports,
@@ -25,11 +25,15 @@ const {isV3Preview,cmsDatabaseUrl,canWriteCms,mutateCms}=moduleObject.exports;
  await assert.rejects(()=>mutateCms(()=>{throw Error('Must not execute')}),/للقراءة فقط|V3_PREVIEW_DATABASE_URL/);
  env.V3_PREVIEW_DATABASE_URL=env.DATABASE_URL;
  assert.equal(canWriteCms(),false,'exact production DB must be rejected');
- env.V3_PREVIEW_DATABASE_URL='postgresql://other:password@prod.example/neondb';
+ env.V3_PREVIEW_DATABASE_URL='postgresql://other:password@prod.example.neon.tech/neondb';
  assert.equal(canWriteCms(),false,'different credentials with same host/database is not isolation');
- env.V3_PREVIEW_DATABASE_URL='postgresql://preview:password@isolated.example/neondb';
+ env.V3_PREVIEW_DATABASE_URL='postgresql://preview:password@isolated.example.neon.tech/neondb';
+ assert.equal(canWriteCms(),false,'missing production endpoint guard blocks preview writes');
+ env.ALHABIB_PRODUCTION_DATABASE_HOST='prod.example.neon.tech';
  assert.equal(canWriteCms(),true,'different database endpoint permits previews');
  assert.equal(cmsDatabaseUrl(),env.V3_PREVIEW_DATABASE_URL,'isolated Neon database selected');
+ env.V3_PREVIEW_DATABASE_URL='postgresql://preview:password@prod.example.neon.tech/otherdb';
+ assert.equal(canWriteCms(),false,'production hostname blocks writes even for another db name');
  delete env.V3_PREVIEW_DATABASE_URL;
  env.VERCEL_GIT_COMMIT_REF='';
  env.V3_PREVIEW_MODE='1';

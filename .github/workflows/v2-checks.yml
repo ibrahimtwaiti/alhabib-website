@@ -1,9 +1,12 @@
 name: V2/V3 quality checks
 on:
   push:
-    branches: [version-2, version-3]
+    branches: [main, version-2, version-3]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -11,17 +14,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '26'
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
       - name: Runtime dependency security audit (release gate)
         run: npm audit --omit=dev --audit-level=high
       - name: Source and asset smoke tests
         run: npm run test:v2
       - name: Appointment message and date regression tests
         run: npm run test:booking
-      - name: Username/password security checks
-        run: npm run test:admin
+      - name: Username/password and CSRF checks
+        run: npm run test:admin && npm run test:security
       - name: Catalog import and image URL regression checks
         run: npm run test:catalog
       - name: Image link and persistent CMS storage regression tests
@@ -53,9 +56,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '26'
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
       - name: Install Chromium and its system libraries
         run: npx playwright install --with-deps chromium
       - name: Build for local browser acceptance tests
