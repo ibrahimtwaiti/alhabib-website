@@ -45,7 +45,7 @@ function Footer({lang,visuals,socialLinks}:{lang:Language,visuals:SiteVisuals,so
   {active.length>0&&<section className="border-t border-white/15 bg-[#4d5151]/60" aria-label={tr(lang,'حسابات المركز على وسائل التواصل','Alhabib social media accounts')}>
    <div className="container py-9 md:py-11">
     <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-2 mb-6">
-     <div><span className="text-xs font-bold tracking-widest text-[#b9f0df]">{tr(lang,'ابقَ على تواصل','STAY CONNECTED')}</span><h2 className="text-xl md:text-2xl font-extrabold mt-2">{tr(lang,'تابع مركز الحبيب','Follow Alhabib Center')}</h2></div>
+     <div><span className="text-xs font-bold tracking-widest text-[#b9f0df]">{tr(lang,'ابقَ على تواصل','STAY CONNECTED')}</span><h2 className="footer-social-title text-white text-xl md:text-2xl font-extrabold mt-2">{tr(lang,'تابع مركز الحبيب','Follow Alhabib Center')}</h2></div>
      <p className="text-sm text-[#e1d6df]">{tr(lang,'آخر أخبارنا ومحتوانا التوعوي على حساباتنا الرسمية','Explore our latest updates and educational content')}</p>
     </div>
     <nav className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4" aria-label={tr(lang,'روابط حسابات التواصل الرسمية','Official social profile links')}>

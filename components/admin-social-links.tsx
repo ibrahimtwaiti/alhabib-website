@@ -71,10 +71,11 @@ export default function AdminSocialLinks({profile}:{profile:AdminProfile}){
   {loading?<div className="py-8 text-slate-500" role="status">جارٍ تحميل روابط التواصل المعتمدة...</div>:!loaded?<div className="mt-5"><p role="alert" className="rounded-xl bg-red-50 text-red-700 p-3 text-sm">{error||"تعذر تحميل الروابط المعتمدة"}</p><button type="button" className="button-outline mt-3" onClick={()=>void load()}>إعادة المحاولة</button></div>:
   <form onSubmit={save} className="mt-6 space-y-4">
    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">{networks.map(({key,name,nameAr,Icon})=>
-    <div key={key} className="rounded-2xl bg-[#fcfafc] border border-[#e8e3e7] p-4">
-     <label htmlFor={'social-'+key} className="font-bold text-sm flex gap-2 items-center"><Icon size={20} aria-hidden="true"/>{nameAr} <span dir="ltr" className="text-slate-500 font-normal">({name})</span></label>
-     <input id={'social-'+key} type="url" inputMode="url" dir="ltr" autoComplete="off"
-      className="field mt-3" placeholder={DEFAULT_SOCIAL_LINKS[key]}
+    <div key={key} className={"rounded-2xl border p-4 md:p-5 min-w-0 "+(key==="instagram"?"bg-white border-[#d8bdcf] shadow-sm xl:col-span-2":"bg-[#fcfafc] border-[#e8e3e7]")}>
+     <label htmlFor={'social-'+key} className="font-bold text-sm flex flex-wrap gap-2 items-center text-[#57585a]"><Icon size={20} aria-hidden="true"/>{key==='instagram'?'رابط حساب إنستغرام':nameAr} <span dir="ltr" className="text-slate-500 font-normal">({name})</span></label>
+     {key==='instagram'&&<p className="text-xs text-slate-600 mt-2">يمكنك تعديل رابط حساب إنستغرام من الحقل التالي، ثم الضغط على «حفظ ونشر الحسابات» أسفل الصفحة.</p>}
+     <input id={'social-'+key} name={'social-'+key} aria-label={'رابط حساب '+nameAr} type="url" inputMode="url" dir="ltr" autoComplete="off" spellCheck={false}
+      className="field mt-3 block w-full min-w-0 !bg-white !text-[#3b333a] !border-2 !border-[#c8b4c3] focus:!border-[#8d517a] !min-h-[52px] shadow-sm" placeholder={DEFAULT_SOCIAL_LINKS[key]}
       value={values[key]} onChange={e=>change(key,e.target.value)} maxLength={500}
       aria-invalid={!isValidSocialProfileUrl(key,values[key])}/>
      {values[key].trim()&&isValidSocialProfileUrl(key,values[key])?
