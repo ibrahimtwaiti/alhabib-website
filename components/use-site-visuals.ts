@@ -19,6 +19,6 @@ export const visualFields=[
 ] as const;
 export function useSiteVisuals(){
  const [visuals,setVisuals]=useState<SiteVisuals>({});
- useEffect(()=>{let alive=true;(async()=>{try{const db=createClient();const [preferred,previous]=await Promise.all([db.from('site_settings').select('value').eq('key',VISUAL_KEY).eq('is_public',true).maybeSingle(),db.from('site_settings').select('value').eq('key','specialty_visuals').eq('is_public',true).maybeSingle()]);if(alive){const old=(previous.data?.value as {heroImage?:string}|null)?.heroImage;const custom=preferred.data?.value as SiteVisuals|null;setVisuals({...(old?{hero:old}:{}),...(custom||{})});}}catch{}})();return()=>{alive=false}},[]);
+ useEffect(()=>{let alive=true;(async()=>{try{const db=createClient();const preferred=await db.from('site_settings').select('value').eq('key',VISUAL_KEY).eq('is_public',true).maybeSingle();if(alive){const custom=preferred.data?.value as SiteVisuals|null;setVisuals(custom||{});}}catch{}})();return()=>{alive=false}},[]);
  return visuals;
 }

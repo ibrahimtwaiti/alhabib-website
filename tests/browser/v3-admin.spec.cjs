@@ -8,6 +8,11 @@ async function mockAdmin(page){
  const records=[];
  await page.route('**/api/admin/session',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({user:{id:'test-admin-id',role:'super_admin'}})}));
  await page.route('**/api/admin/storage-health',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({backend:'postgres',ready:true,writeProtected:false})}));
+ let baseline={approved_at:'2026-11-13T00:00:00.000Z',visuals:{hero:'/assets/team/hisham-hendawy.webp'},specialists:{'demo':{image_url:'/assets/team/hisham-hendawy.webp'}}};
+ await page.route('**/api/admin/visual-baseline',route=>{
+  if(route.request().method()==='POST'){const body=route.request().postDataJSON();if(body.action==='capture')baseline={...baseline,approved_at:'2026-11-13T01:00:00.000Z'};return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,baseline})});}
+  return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({baseline})});
+ });
  await page.route('**/api/cms',async route=>{
   const q=route.request().postDataJSON();
   if(q.action==='upsert'&&q.table==='site_settings'){
@@ -86,4 +91,16 @@ test('site settings edit official social profile links and publish through CMS',
  await page.getByRole('button',{name:'حفظ ونشر الحسابات'}).click();
  await expect(page.getByRole('alert').filter({hasText:'رابط Snapchat غير صالح'})).toBeVisible();
  expect(mock.records.filter(x=>x.payload?.key==='social_links')).toHaveLength(1);
+});
+
+test('super admin can approve and restore image defaults without using old V1 fallbacks',async({page})=>{
+ await mockAdmin(page);
+ page.on('dialog',dialog=>dialog.accept());
+ await page.goto('/admin/dashboard');
+ await page.getByRole('button',{name:'الصور والأيقونات'}).click();
+ await expect(page.getByRole('region',{name:'النسخة الافتراضية المعتمدة'})).toBeVisible();
+ await page.getByRole('button',{name:'اعتماد الحالة الحالية كافتراضية'}).click();
+ await expect(page.getByText('تم اعتماد الحالة الحالية كنسخة افتراضية قابلة للاستعادة.')).toBeVisible();
+ await page.getByRole('button',{name:'استعادة النسخة الافتراضية'}).click();
+ await expect(page.getByText('تمت استعادة الصور والأيقونات الافتراضية المعتمدة.')).toBeVisible();
 });

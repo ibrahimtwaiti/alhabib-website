@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {ImagePlus,Save,RefreshCw,Trash2} from 'lucide-react';
+import {Save,RefreshCw,Trash2,ArchiveRestore,ShieldCheck} from 'lucide-react';
 import {createClient} from '@/lib/cms-client';
 import {uploadPublicImage} from '@/components/admin-catalog';
 import {VISUAL_KEY,visualFields,type SiteVisuals} from '@/components/use-site-visuals';
@@ -14,12 +14,21 @@ export default function AdminVisuals({profile}:{profile:Profile}){
  const [visuals,setVisuals]=useState<SiteVisuals>({});
  const [drafts,setDrafts]=useState<SiteVisuals>({});
  const [loaded,setLoaded]=useState(false);
+ const [baseline,setBaseline]=useState<{approved_at:string;visuals:SiteVisuals;specialists:Record<string,unknown>}|null>(null);
+ const owner=profile.role==='super_admin';
  const [pending,setPending]=useState<Partial<Record<VisualKey,string>>>({});
  const [busy,setBusy]=useState('');const [error,setError]=useState('');const [notice,setNotice]=useState('');
  async function reload(){
   setLoaded(false);
-  const {data,error}=await createClient().from('site_settings').select('value').eq('key',VISUAL_KEY).maybeSingle();
+  const [setting,response]=await Promise.all([
+   createClient().from('site_settings').select('value').eq('key',VISUAL_KEY).maybeSingle(),
+   fetch('/api/admin/visual-baseline',{cache:'no-store'})
+  ]);
+  const {data,error}=setting;
   if(error)throw error;
+  if(!response.ok)throw new Error('تعذر تحميل النسخة الافتراضية المعتمدة');
+  const {baseline:approved}=await response.json() as {baseline:{approved_at:string;visuals:SiteVisuals;specialists:Record<string,unknown>}};
+  setBaseline(approved);
   const saved=(data?.value||{}) as SiteVisuals;
   setVisuals(saved);setDrafts(saved);setLoaded(true);
  }
@@ -28,6 +37,18 @@ export default function AdminVisuals({profile}:{profile:Profile}){
   const {error}=await createClient().from('site_settings').upsert({key:VISUAL_KEY,value:next,is_public:true},{onConflict:'key'});
   if(error)throw error;
   setVisuals(next);setDrafts(next);
+ }
+ async function baselineAction(action:'capture'|'restore'){
+  if(!owner||busy)return;
+  const confirmText=action==='capture'?'هل تريد اعتماد الصور والأيقونات الحالية كنسخة افتراضية جديدة؟ سيُستبدل تعريف النسخة الافتراضية السابقة.':'هل تريد استعادة الصور والأيقونات المعتمدة؟ لن تتأثر بيانات الأخصائيين النصية أو بقية الإعدادات.';
+  if(!window.confirm(confirmText))return;
+  setBusy(action);setError('');setNotice('');
+  try{
+   const response=await fetch('/api/admin/visual-baseline',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});
+   const result=await response.json() as {error?:string};
+   if(!response.ok)throw new Error(result.error||'تعذر إجراء العملية');
+   await reload();setNotice(action==='capture'?'تم اعتماد الحالة الحالية كنسخة افتراضية قابلة للاستعادة.':'تمت استعادة الصور والأيقونات الافتراضية المعتمدة.');
+  }catch(e){setError((e as Error).message)}finally{setBusy('')}
  }
  async function saveLink(key:VisualKey){
   if(busy)return;
@@ -49,7 +70,7 @@ export default function AdminVisuals({profile}:{profile:Profile}){
  }
  async function clear(key:VisualKey){
   if(busy)return;setBusy(key);setError('');setNotice('');
-  try{const next={...visuals};delete next[key];await persist(next);setNotice('عادت الصورة الافتراضية لهذا العنصر.')}
+  try{const next={...visuals};delete next[key];await persist(next);setNotice('عادت النسخة الافتراضية المعتمدة لهذا العنصر.')}
   catch(e){setError((e as Error).message||'تعذر الاستعادة')}
   finally{setBusy('')}
  }
@@ -72,6 +93,7 @@ export default function AdminVisuals({profile}:{profile:Profile}){
   <div className="card p-6"><h2 className="text-xl font-bold">الهوية البصرية والصور والأيقونات — روابط مباشرة</h2>
   <p className="text-sm mt-2 text-slate-600">ارفع الصورة من جهازك أو ضع رابط HTTPS مباشرًا. لن تُعرض الصورة القديمة أثناء تحميل المعاينة الجديدة، وستُحفظ الصورة ضمن مسار مستقل للإصدار V3.</p>
   <button type="button" className="button-outline mt-4 !p-2" onClick={()=>void reload().catch(e=>setError((e as Error).message))}><RefreshCw size={17}/>تحديث البيانات</button></div>
+  {baseline&&<div className="card p-6 space-y-3" role="region" aria-label="النسخة الافتراضية المعتمدة"><h3 className="font-bold text-lg flex gap-2 items-center"><ShieldCheck size={19}/>النسخة الافتراضية المعتمدة</h3><p className="text-sm text-slate-600">الصور والأيقونات المحفوظة حالياً يمكن اعتمادها كنقطة استعادة جديدة. اعتماد نسخة جديدة يستبدل نقطة الاستعادة القديمة، وليس ملفات الصور المستخدمة.</p><p className="text-xs text-slate-500">تاريخ الاعتماد: {new Date(baseline.approved_at).toLocaleString('ar-SA')} • صور الأخصائيين: {Object.keys(baseline.specialists).length}</p>{owner&&<div className="flex flex-wrap gap-3"><button type="button" disabled={!!busy||!loaded} className="button-primary !px-4 !py-2" onClick={()=>void baselineAction('capture')}><Save size={16}/>اعتماد الحالة الحالية كافتراضية</button><button type="button" disabled={!!busy||!loaded} className="button-outline !px-4 !py-2" onClick={()=>void baselineAction('restore')}><ArchiveRestore size={16}/>استعادة النسخة الافتراضية</button></div>}</div>}
   {error&&<div role="alert" className="p-4 rounded-xl bg-red-50 text-red-700">{error}</div>}
   {notice&&<div role="status" className="p-4 rounded-xl bg-green-50 text-green-800">{notice}</div>}
   {!loaded?<div role="status" className="card p-6 text-slate-500">جارٍ تحميل الصور المحفوظة من قاعدة البيانات... لن يتم عرض الصور الافتراضية قبل اكتمال التحميل.</div>:
@@ -80,11 +102,11 @@ export default function AdminVisuals({profile}:{profile:Profile}){
     <h3 className="font-bold mb-4">{label}</h3>
     <div className={(key==='hero'?'aspect-square':'h-40')+' rounded-2xl bg-[#f4f4f4] border border-[#eee7ed] flex items-center justify-center overflow-hidden'}>
      <AdminImagePreview
-      src={pending[key]||drafts[key]||(key==='hero'?'/assets/team/heba-alhabib.webp':'')}
+      src={pending[key]||drafts[key]||baseline?.visuals[key]||''}
       alt={label}
       fit={key==='hero'?(drafts.heroFit==='contain'?'contain':'cover'):'contain'}
       position={key==='hero'?`${drafts.heroPositionX ?? 50}% ${drafts.heroPositionY ?? 50}%`:'center'}
-      emptyLabel="العنصر الافتراضي"
+      emptyLabel="الأيقونة المتجهية الافتراضية"
      />
     </div>
     <label className="label mt-4" htmlFor={'visual-url-'+key}>رابط الصورة المباشر (HTTPS)</label>
