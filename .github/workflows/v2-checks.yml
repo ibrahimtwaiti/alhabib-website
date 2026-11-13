@@ -20,6 +20,8 @@ jobs:
         run: npm run test:v2
       - name: Appointment message and date regression tests
         run: npm run test:booking
+      - name: Production backup workflow security and recovery checks
+        run: node scripts/test-backup-workflow.cjs
       - name: Dynamic multi-specialty booking and atomic specialist save checks
         run: npm run test:multi-specialty && npm run test:specialist-save
       - name: Username/password security checks
