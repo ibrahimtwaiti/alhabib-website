@@ -1,6 +1,20 @@
 import PublicSite from '@/components/public-site';
-import {specialties} from '@/lib/clinic-data';
+import {loadPublishedSiteData} from '@/lib/public-site-server';
+import {pageMetadata} from '@/lib/page-metadata';
+import {notFound} from 'next/navigation';
 import type {Metadata} from 'next';
-export function generateStaticParams(){return specialties.map(s=>({slug:s.slug}))}
-export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;const s=specialties.find(x=>x.slug===slug);return {title:s?.nameAr||'التخصصات',description:s?.introAr}}
-export default async function Page({params}:{params:Promise<{slug:string}>}){const {slug}=await params;return <PublicSite page="specialty" slug={slug}/>}
+
+export const dynamic='force-dynamic';
+type SlugParams={params:Promise<{slug:string}>};
+
+export async function generateMetadata({params}:SlugParams):Promise<Metadata>{
+ const {slug}=await params;
+ const data=await loadPublishedSiteData();
+ const item=data.services.find(x=>x.slug===slug);
+ if(!item)notFound();
+ return pageMetadata(item.nameAr,item.introAr,'/specialties/'+encodeURIComponent(slug),item.image);
+}
+export default async function Page({params}:SlugParams){
+ const {slug}=await params;
+ return <PublicSite page="specialty" slug={slug}/>;
+}
