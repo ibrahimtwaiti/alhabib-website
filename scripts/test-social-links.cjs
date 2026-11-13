@@ -45,7 +45,8 @@ assert.ok(admin.includes('is_public:true'),'links are published when saved');
 console.log('Social links: official defaults, strict platform validation, CMS projection and admin integration passed');
 
 const socialAdmin=fs.readFileSync(path.join(__dirname,'../components/admin-social-links.tsx'),'utf8');
-assert.ok(socialAdmin.includes("key==='instagram'?'رابط حساب إنستغرام':nameAr"),'Instagram has a dedicated visible edit label');
+assert.ok(socialAdmin.includes("const inputId='account-url-field-'+index"),'all social inputs use consistent neutral IDs to prevent browser cosmetic-filter collisions');
+assert.ok(!socialAdmin.includes("id={'social-'+key}"),'legacy Instagram ID must not recur');
 assert.ok(socialAdmin.includes("value={values[key]} onChange={e=>change(key,e.target.value)}"),'Instagram input supports editing and saving');
 const footerCss=fs.readFileSync(path.join(__dirname,'../app/globals.css'),'utf8');
 assert.ok(footerCss.includes('.footer .footer-social-title{color:#ffffff}'),'dark footer social headline has explicit high-contrast white');

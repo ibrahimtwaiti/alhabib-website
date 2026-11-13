@@ -94,25 +94,41 @@ test('site settings edit official social profile links and publish through CMS',
  const mock=await mockAdmin(page);
  await page.goto('/admin/dashboard');
  await page.getByRole('button',{name:'إعدادات الموقع'}).click();
- await expect(page.locator('#social-instagram')).toHaveValue('https://www.instagram.com/alhabib_physio/');
+ await expect(page.locator('#account-url-field-0')).toHaveValue('https://www.instagram.com/alhabib_physio/');
  const instagramInput=page.getByRole('textbox',{name:'رابط حساب إنستغرام'});
  await expect(instagramInput).toBeVisible();
  await expect(instagramInput).toBeEditable();
+ // Reproduce an extension's cosmetic filter that can hide the legacy
+ // #social-instagram input while leaving the other platform inputs visible.
+ await page.addStyleTag({content:'input[id*="instagram"], input[name*="instagram"], #social-instagram { display:none !important; }'});
+ await expect(instagramInput).toBeVisible();
+ const instagramStyle=await instagramInput.evaluate(el=>({display:getComputedStyle(el).display,visibility:getComputedStyle(el).visibility}));
+ expect(instagramStyle.display).not.toBe('none');
+ expect(instagramStyle.visibility).toBe('visible');
+ for(let index=0;index<4;index++){
+  const linkInput=page.locator('#account-url-field-'+index);
+  await expect(linkInput).toBeVisible();
+  await expect(linkInput).toBeEditable();
+ }
+ const instagramBox=await instagramInput.boundingBox();
+ const snapchatBox=await page.locator('#account-url-field-2').boundingBox();
+ expect(Math.abs(instagramBox.height-snapchatBox.height)).toBeLessThanOrEqual(1);
+
  const instagramSize=await instagramInput.evaluate(node=>({width:node.getBoundingClientRect().width,height:node.getBoundingClientRect().height}));
  expect(instagramSize.width).toBeGreaterThan(180);
  expect(instagramSize.height).toBeGreaterThanOrEqual(49);
- await expect(page.locator('#social-x')).toHaveValue('https://x.com/AlhabibPhy85165');
- await expect(page.locator('#social-snapchat')).toHaveValue('https://www.snapchat.com/add/alhabib_physio');
- await expect(page.locator('#social-tiktok')).toHaveValue('https://www.tiktok.com/@alhabib_physio');
+ await expect(page.locator('#account-url-field-1')).toHaveValue('https://x.com/AlhabibPhy85165');
+ await expect(page.locator('#account-url-field-2')).toHaveValue('https://www.snapchat.com/add/alhabib_physio');
+ await expect(page.locator('#account-url-field-3')).toHaveValue('https://www.tiktok.com/@alhabib_physio');
  await instagramInput.fill('https://www.instagram.com/alhabib_physio_updated/');
- await page.locator('#social-x').fill('https://x.com/AlhabibCare');
+ await page.locator('#account-url-field-1').fill('https://x.com/AlhabibCare');
  await page.getByRole('button',{name:'حفظ ونشر الحسابات'}).click();
  await expect(page.getByText(/تم حفظ روابط حسابات المركز ونشرها بنجاح/)).toBeVisible();
  expect(mock.getSavedSocial().x).toBe('https://x.com/AlhabibCare');
  expect(mock.getSavedSocial().instagram).toBe('https://www.instagram.com/alhabib_physio_updated/');
  await expect(instagramInput).toHaveValue('https://www.instagram.com/alhabib_physio_updated/');
  expect(mock.records.some(x=>x.payload?.key==='social_links'&&x.payload?.is_public===true&&x.onConflict==='key')).toBe(true);
- await page.locator('#social-snapchat').fill('https://attacker.example/bad');
+ await page.locator('#account-url-field-2').fill('https://attacker.example/bad');
  await page.getByRole('button',{name:'حفظ ونشر الحسابات'}).click();
  await expect(page.getByRole('alert').filter({hasText:'رابط Snapchat غير صالح'})).toBeVisible();
  expect(mock.records.filter(x=>x.payload?.key==='social_links')).toHaveLength(1);
