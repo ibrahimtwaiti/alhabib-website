@@ -20,7 +20,8 @@
     "test:neon-cutover": "node scripts/test-neon-cutover.cjs",
     "test:public-images": "node scripts/test-public-images.cjs",
     "test:social": "node scripts/test-social-links.cjs",
-    "test:v3": "node scripts/test-v3-guards.cjs && node scripts/test-v3-motion.cjs && node scripts/test-v3-upload.cjs"
+    "test:v3": "node scripts/test-v3-guards.cjs && node scripts/test-v3-motion.cjs && node scripts/test-v3-upload.cjs",
+    "test:security": "node scripts/test-security-guards.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -37,13 +38,4 @@
     "@vercel/cli-config": "0.3.7"
   },
   "devDependencies": {
-    "@types/node": "^22.13.4",
-    "@types/react": "^19.0.8",
-    "@types/react-dom": "^19.0.3",
-    "autoprefixer": "^10.4.20",
-    "postcss": "8.5.32",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.3",
-    "@playwright/test": "1.65.0"
-  }
-}
+    "@types/node": "^22.¶»§q«^
