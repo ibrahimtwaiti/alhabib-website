@@ -38,6 +38,8 @@ jobs:
         run: npm run test:neon-cutover
       - name: Public first-render image regression checks
         run: npm run test:public-images
+      - name: Phase 2 Core Web Vitals, shared UI and SEO source guards
+        run: node scripts/test-phase2-structure.cjs
       - name: Public social links, admin settings and platform URL checks
         run: npm run test:social
       - name: Approved visual defaults and restore regression tests
