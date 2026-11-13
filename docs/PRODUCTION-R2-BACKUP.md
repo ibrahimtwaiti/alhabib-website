@@ -25,20 +25,14 @@ GitHub → `alhabib-website` → Settings → Environments → **production-back
 
 The first three R2 environment secrets have been supplied by the owner. **GitHub's available connector cannot write or verify environment secrets.** The Neon URI must be entered by the owner directly in GitHub. Do not paste it into this repository, issue, PR, Actions logs, or a chat.
 
-**Environment variable:**
-
-| Key | Value |
-| --- | --- |
-| `ALHABIB_R2_DATA_LOCATION_APPROVED` | `true` **only after the owner confirms that storing any data from this medical-center CMS in R2's North America region ENAM is acceptable** |
-
-The workflow refuses to export or upload data if this variable is absent or not exactly `true`. This is deliberate: R2 has already been provisioned in ENAM, and its location needs explicit approval. If data must remain in Saudi Arabia or another compliant region, do not approve ENAM; use an approved storage location instead.
+**ENAM location authorization — confirmed by the owner:** The owner explicitly approved storing Alhabib CMS backup files in Cloudflare R2's **ENAM / North America** region on **14 November 2026**. This approval is encoded as the non-secret job configuration `ALHABIB_R2_DATA_LOCATION_APPROVED: 'true'`. **No GitHub Environment variable is needed.** Changing the destination region or revoking approval requires reviewing and updating the workflow through a protected Pull Request. The configured storage location is not presumed to satisfy any otherwise-applicable medical-data transfer or privacy requirements; assess those separately.
 
 Recommended environment **Deployment branches and tags** restriction: `main` only. The job independently enforces `github.repository` and `github.ref == refs/heads/main`. Leave **Required reviewers** disabled when operating as sole maintainer.
 
 ## Run and verify
 
 1. Inspect the reviewed workflow under `.github/workflows/alhabib-nightly-r2-backup.yml`, and merge the reviewed PR only when the pre-release conditions are satisfied. Editing workflow files is subject to GitHub's `main` ruleset and required `verify` / `browser` jobs.
-2. Open GitHub → Actions → **Alhabib CMS - nightly private R2 backup** → **Run workflow**, select `main`.
+2. **First automatic run:** the first merge to `main` that adds or changes `.github/workflows/alhabib-nightly-r2-backup.yml` triggers a single backup through its narrowly scoped `push` path filter. Future backups use the nightly schedule. For an additional manual run, open GitHub → Actions → **Alhabib CMS - nightly private R2 backup** → **Run workflow**, select `main`.
 3. Check the `production-backup` job summary for a private object path, size, SHA-256, verified byte-for-byte R2 download and successful restore into a **temporary, network-disconnected PostgreSQL 18 Docker container**. This tests a real dump → R2 → download → independent restore path without touching Neon production.
 4. In Cloudflare R2 confirm the object under `alhabib-cms-backups/daily/` is stored privately. The job **must not** publish its dump as an Actions artifact.
 5. Check the next scheduled run: `15 2 * * *` is **02:15 UTC / 05:15 Saudi time**. Scheduled GitHub Actions can start late and may be delayed or dropped during high load; monitor failures.
@@ -59,8 +53,8 @@ Each backup has a unique timestamp + GitHub run ID. Existing backups are never o
 - [x] R2 bucket exists with public access disabled; role-specific R2 credentials entered by owner (their operation still needs testing).
 - [x] `main` GitHub ruleset with solo-maintainer PR checks configured.
 - [x] Vercel WAF and separate Preview Neon credentials configured earlier.
-- [ ] `NEON_BACKUP_READ_ONLY_URL` added under `production-backup` secrets.
-- [ ] ENAM data location explicitly approved by owner and variable set.
+- [x] `NEON_BACKUP_READ_ONLY_URL` is visible by name under `production-backup` Environment secrets in the owner's screenshot; the value is deliberately unreadable and must still be runtime-validated.
+- [x] ENAM location explicitly approved by owner on 14 November 2026 and recorded as a non-secret workflow configuration.
 - [ ] Workflow successfully builds/dumps, uploads, byte-compares and restores on GitHub Actions.
 - [ ] Production release/merge separately approved once all release checks pass.
 
