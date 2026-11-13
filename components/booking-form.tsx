@@ -4,6 +4,7 @@ import {CalendarDays,CheckCircle2,MessageCircle,ShieldCheck} from 'lucide-react'
 import {createClient} from '@/lib/cms-client';
 import {tr,whatsappNumber,type Language,type Profile,type Specialty} from '@/lib/clinic-data';
 import {buildWhatsAppMessage,displayDate,displayTime,localTodayISO} from '@/lib/booking-message';
+import {matchesSpecialistSpecialty} from '@/lib/specialist-specialties';
 
 export default function BookingForm({lang,people,services}:{lang:Language,people:Profile[],services:Specialty[]}){
  const [department,setDepartment]=useState<'men'|'women'>('women');
@@ -14,7 +15,7 @@ export default function BookingForm({lang,people,services}:{lang:Language,people
  const [attempted,setAttempted]=useState(false);
  const [nearest,setNearest]=useState('');const [clinicWhatsApp,setClinicWhatsApp]=useState(whatsappNumber);
  const ar=lang==='ar';
- const specialists=useMemo(()=>people.filter(p=>p.department===department&&(!specialty||p.category===services.find(s=>s.slug===specialty)?.category||specialty==='physical-therapy'&&p.category==='physical')),[people,department,specialty,services]);
+ const specialists=useMemo(()=>{const service=services.find(s=>s.slug===specialty);return people.filter(person=>person.department===department&&(!service||matchesSpecialistSpecialty(person,service)))},[people,department,specialty,services]);
  useEffect(()=>{
   const params=new URLSearchParams(window.location.search);
   const wantedProfile=people.find(p=>p.slug===params.get('specialist'));
@@ -22,7 +23,8 @@ export default function BookingForm({lang,people,services}:{lang:Language,people
   if(wantedProfile){
    setDepartment(wantedProfile.department);
    setExpert(wantedProfile.slug);
-   setSpecialty(wantedService?.category===wantedProfile.category?wantedService.slug:services.find(s=>s.category===wantedProfile.category)?.slug||'');
+   const initialService=wantedService&&matchesSpecialistSpecialty(wantedProfile,wantedService)?wantedService:services.find(service=>matchesSpecialistSpecialty(wantedProfile,service));
+   setSpecialty(initialService?.slug||'');
   }else if(wantedService)setSpecialty(wantedService.slug);
  },[people,services]);
  useEffect(()=>{let active=true;(async()=>{try{const {data}=await createClient().from('site_settings').select('value').eq('key','whatsapp').eq('is_public',true).maybeSingle();const number=(data?.value as {number?:string}|null)?.number?.replace(/\D/g,'');if(active&&number&&/^\d{10,15}$/.test(number))setClinicWhatsApp(number)}catch{}})();return()=>{active=false}},[]);

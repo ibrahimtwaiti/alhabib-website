@@ -2,16 +2,24 @@ const {test,expect}=require('@playwright/test');
 const {setTimeout:delay}=require('node:timers/promises');
 /** Browser mocks authenticate only inside Playwright's test page. No real admin
  * account, production session, CMS record, Blob token or Neon data is changed. */
-async function mockAdmin(page){
+async function mockAdmin(page,options={}){
  let savedAbout=null;
  let savedSocial=null;
  const records=[];
+ const savedSpecialists=[];
+ const dynamicSpecialties=[...(options.specialties||[])];
+ const specialistRecords=[...(options.specialists||[])];
+ const links=[...(options.links||[])];
  await page.route('**/api/admin/session',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({user:{id:'test-admin-id',role:'super_admin'}})}));
  await page.route('**/api/admin/storage-health',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({backend:'postgres',ready:true,writeProtected:false})}));
  let baseline={approved_at:'2026-11-13T00:00:00.000Z',visuals:{hero:'/assets/team/hisham-hendawy.webp'},specialists:{'demo':{image_url:'/assets/team/hisham-hendawy.webp'}}};
  await page.route('**/api/admin/visual-baseline',route=>{
   if(route.request().method()==='POST'){const body=route.request().postDataJSON();if(body.action==='capture')baseline={...baseline,approved_at:'2026-11-13T01:00:00.000Z'};return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,baseline})});}
   return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({baseline})});
+ });
+ await page.route('**/api/admin/specialists/save',route=>{
+  savedSpecialists.push(route.request().postDataJSON());
+  return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,specialistId:savedSpecialists.at(-1).specialistId,specialtyIds:savedSpecialists.at(-1).specialtyIds})});
  });
  await page.route('**/api/cms',async route=>{
   const q=route.request().postDataJSON();
@@ -21,8 +29,16 @@ async function mockAdmin(page){
    if(q.payload?.key==='social_links')savedSocial=q.payload.value;
    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[{id:'about-test',...q.payload}],error:null})});
   }
+  if(q.action==='insert'&&q.table==='specialties'){
+   const created={id:'99999999-0000-4000-8000-000000000009',...q.payload};
+   dynamicSpecialties.push(created);
+   return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[created],error:null})});
+  }
   let data=[];
   if(q.table==='profiles')data=[{id:'test-admin-id',full_name:'مدير الاختبار',username:'preview-test',role:'super_admin',permissions:{settings:true},is_active:true}];
+  if(q.table==='specialties'&&q.action==='select')data=dynamicSpecialties;
+  if(q.table==='specialist_specialties'&&q.action==='select')data=links;
+  if(q.table==='specialists'&&q.action==='select')data=specialistRecords;
   if(q.table==='specialists'&&q.action==='select'&&q.selection==='*')await delay(650);
   if(q.table==='site_settings'&&q.filters?.some(x=>x.key==='key'&&x.value==='site_visuals')){
    await delay(700);
@@ -34,7 +50,7 @@ async function mockAdmin(page){
   }
   return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data,error:null,count:q.head?data.length:null})});
  });
- return{records,getSavedAbout:()=>savedAbout,getSavedSocial:()=>savedSocial};
+ return{records,getSavedAbout:()=>savedAbout,getSavedSocial:()=>savedSocial,getSavedSpecialists:()=>savedSpecialists};
 }
 test('admin image library never flashes a bundled hero while saved images load',async({page})=>{
  await mockAdmin(page);
@@ -103,4 +119,40 @@ test('super admin can approve and restore image defaults without using old V1 fa
  await expect(page.getByText('تم اعتماد الحالة الحالية كنسخة افتراضية قابلة للاستعادة.')).toBeVisible();
  await page.getByRole('button',{name:'استعادة النسخة الافتراضية'}).click();
  await expect(page.getByText('تمت استعادة الصور والأيقونات الافتراضية المعتمدة.')).toBeVisible();
+});
+
+test('admin supports multiple specialties and newly created specialties in filtering options',async({page})=>{
+ const id='a11ab1b0-2026-4000-8000-000000000001';
+ const primary='11111111-0000-4000-8000-000000000001';
+ const sports='11111111-0000-4000-8000-000000000002';
+ const fixture=await mockAdmin(page,{
+  specialists:[{id,name_ar:'هشام هنداوي',name_en:'Hisham Hendawy',department:'men',image_url:'/assets/team/hisham-hendawy.webp',is_published:true}],
+  specialties:[
+   {id:primary,slug:'physical-therapy',name_ar:'العلاج الطبيعي',is_published:true},
+   {id:sports,slug:'sports-rehabilitation',name_ar:'التأهيل الرياضي',is_published:true}
+  ],
+  links:[{specialist_id:id,specialty_id:primary}]
+ });
+ await page.goto('/admin/dashboard');
+ await page.getByRole('button',{name:'التخصصات',exact:true}).click();
+ await page.locator('#catalog-slug').fill('advanced-rehabilitation');
+ await page.locator('#catalog-name_ar').fill('التأهيل المتقدم');
+ await page.locator('#catalog-name_en').fill('Advanced Rehabilitation');
+ await page.getByRole('button',{name:'حفظ التعديلات'}).click();
+ await expect(page.getByText(/تم حفظ التغييرات/)).toBeVisible();
+ await page.getByRole('button',{name:'الأخصائيون',exact:true}).click();
+ await page.getByRole('button',{name:'تعديل هشام هنداوي'}).click();
+ const group=page.getByRole('group',{name:'اختيار تخصصات الأخصائي'});
+ await expect(group.getByRole('checkbox',{name:'العلاج الطبيعي'})).toBeChecked();
+ await expect(group.getByRole('checkbox',{name:'التأهيل الرياضي'})).not.toBeChecked();
+ await expect(group.getByRole('checkbox',{name:'التأهيل المتقدم'})).not.toBeChecked();
+ await group.getByRole('checkbox',{name:'التأهيل الرياضي'}).check();
+ await group.getByRole('checkbox',{name:'التأهيل المتقدم'}).check();
+ await expect(page.getByText('التخصصات المحددة: 3 من 3')).toBeVisible();
+ await page.getByRole('button',{name:'حفظ التعديلات'}).click();
+ await expect.poll(()=>fixture.getSavedSpecialists().length).toBe(1);
+ const saved=fixture.getSavedSpecialists()[0];
+ expect(saved.specialistId).toBe(id);
+ expect(saved.specialtyIds).toEqual(expect.arrayContaining([primary,sports,'99999999-0000-4000-8000-000000000009']));
+ expect(saved.specialtyIds).toHaveLength(3);
 });

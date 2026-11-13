@@ -5,6 +5,7 @@ import {profiles,specialties,type Profile,type Specialty} from './clinic-data';
 import {CATALOG_SETTING_KEY,builtinProfileId,reconcileProfiles,reconcileSpecialties,type CatalogMode,type DbProfile,type DbSpecialty} from './catalog';
 import {isAllowedImageUrl} from './image-urls';
 import {latestById} from './cms-dedupe';
+import {linkedSpecialtySlugs} from './specialist-specialties';
 import type {CmsStore} from './cms-store';
 import type {SiteSection} from '@/components/admin-sections';
 import type {SiteVisuals} from '@/components/use-site-visuals';
@@ -29,18 +30,21 @@ export function publicDataFromStore(store:Pick<CmsStore,'tables'>):PublicSiteDat
  const mode=(setting(CATALOG_SETTING_KEY)||{}) as CatalogMode;
  const servicesRows=sortBy(latestById(items(store,'specialties')).filter(r=>r.is_published===true),'sort_order',true);
  const teamRows=sortBy(latestById(items(store,'specialists')).filter(r=>r.is_published===true),'sort_order',true);
+ const links=items(store,'specialist_specialties');
  const categoryById:Record<string,string>={};
- for(const link of items(store,'specialist_specialties')){
+ for(const link of links){
   const target=servicesRows.find(s=>s.id===link.specialty_id);
   const base=specialties.find(s=>s.slug===target?.slug);
-  if(base && typeof link.specialist_id==='string')categoryById[link.specialist_id]=base.category;
+  if(base && typeof link.specialist_id==='string'&&!categoryById[link.specialist_id])categoryById[link.specialist_id]=base.category;
  }
  const baseline=getVisualBaseline(store);
  const people=reconcileProfiles(teamRows as unknown as DbProfile[],mode.team===true,categoryById).map(person=>{
   const row=teamRows.find(r=>r.id===person.slug||r.name_ar===person.nameAr);
+  const linked=row&&typeof row.id==='string'?linkedSpecialtySlugs(row.id,links,servicesRows):undefined;
+  const withSpecialties=linked?{...person,specialtySlugs:linked}:person;
   const approved=baseline.specialists[String(row?.id||builtinProfileId(person.slug)||'')];
-  if(!approved||row?.image_url&&typeof row.image_url==='string'&&isAllowedImageUrl(row.image_url))return person;
-  return {...person,photo:approved.image_url,photoFit:approved.photo_fit,
+  if(!approved||row?.image_url&&typeof row.image_url==='string'&&isAllowedImageUrl(row.image_url))return withSpecialties;
+  return {...withSpecialties,photo:approved.image_url,photoFit:approved.photo_fit,
    photoPositionX:approved.photo_position_x,photoPositionY:approved.photo_position_y};
  });
  const icons=['activity','heart','brain','leaf','sparkles','shield'];
