@@ -42,6 +42,7 @@ Each backup has a unique timestamp + GitHub run ID. Existing backups are never o
 ## Recovery guidance
 
 - The job exercises full `pg_restore` **only inside a disposable, network-isolated local PostgreSQL 18 instance**, never against Neon production.
+- PostgreSQL 18's template database already includes the `public` schema. Restore uses `--clean --if-exists` **inside the disposable local test container only** so the archive can recreate its own `public` schema. The first backup run on 13 November 2026 uploaded and re-downloaded the dump correctly but exposed this restore-only issue; a corrective PR and fresh verified run are required before declaring the drill successful.
 - For a real incident, create a **separate** Neon recovery branch/database. Restore there first, inspect structure and CMS version, verify records, and get an explicit go/no-go before any production cutover.
 - Do **not** call Neon snapshot restore with an implicit finalization or switch production branch/compute in order to test recovery.
 - A GitHub workflow/code rollback does not restore Neon database state; keep these independent.

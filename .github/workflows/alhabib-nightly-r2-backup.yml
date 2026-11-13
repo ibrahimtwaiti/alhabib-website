@@ -128,8 +128,11 @@ jobs:
           test "$ready" -eq 1 || { echo '::error::Isolated restore DB did not become ready'; exit 1; }
           docker cp "$backup_dir/roundtrip.pgdump" "$restore_container:/tmp/roundtrip.pgdump"
           docker exec -u root "$restore_container" chown postgres:postgres /tmp/roundtrip.pgdump
+          # Restore in a fresh, disposable PostgreSQL container. PG18 initializes
+          # schema public by default; --clean --if-exists removes it before the
+          # dump's CREATE SCHEMA public statement, preventing duplicate-schema errors.
           docker exec "$restore_container" pg_restore -U postgres -d alhabib_restore_test \
-            --no-owner --no-acl --exit-on-error /tmp/roundtrip.pgdump
+            --clean --if-exists --no-owner --no-acl --exit-on-error /tmp/roundtrip.pgdump
 
           integrity="$(docker exec "$restore_container" psql -U postgres -d alhabib_restore_test -Atqc \
             "SELECT CASE WHEN count(*)=1 THEN 'ok' ELSE 'invalid' END FROM public.alhabib_cms_state WHERE id=1 AND version >= 0 AND jsonb_typeof(payload->'users')='array' AND jsonb_typeof(payload->'tables')='object'")"

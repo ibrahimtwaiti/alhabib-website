@@ -28,6 +28,7 @@ includes('ALHABIB_R2_DATA_LOCATION_APPROVED', 'require explicit ENAM location ap
 includes('cmp --silent', 'round-trip content verification');
 includes('--network none', 'restore test must not reach Production Neon');
 includes('pg_restore -U postgres', 'independent recovery drill required');
+includes('--clean --if-exists --no-owner --no-acl --exit-on-error', 'PostgreSQL 18 must drop the default public schema before recreating it from the dump');
 includes('cleanup() {', 'restore container and temporary dump must be removed');
 includes('trap cleanup EXIT', 'cleanup must occur on both success and failure');
 assert.ok(!/actions\/upload-artifact@/i.test(source),'never upload unencrypted dumps as GitHub artifacts');
