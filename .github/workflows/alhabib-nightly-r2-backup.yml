@@ -1,0 +1,140 @@
+name: Alhabib CMS - nightly private R2 backup
+
+on:
+  schedule:
+    - cron: '15 2 * * *' # UTC; 05:15 in Saudi Arabia
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: alhabib-production-cms-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Backup and offline restore verification
+    if: github.repository == 'ibrahimtwaiti/alhabib-website' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: production-backup
+    env:
+      NEON_BACKUP_READ_ONLY_URL: ${{ secrets.NEON_BACKUP_READ_ONLY_URL }}
+      ALHABIB_R2_ACCOUNT_ID: ${{ secrets.ALHABIB_R2_ACCOUNT_ID }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.ALHABIB_R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.ALHABIB_R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_EC2_METADATA_DISABLED: 'true'
+      ALHABIB_R2_DATA_LOCATION_APPROVED: ${{ vars.ALHABIB_R2_DATA_LOCATION_APPROVED }}
+
+    steps:
+      - name: Validate safety gate and least-privilege connection
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The existing R2 bucket is in ENAM. Never transfer live data without approval.
+          if [[ "$ALHABIB_R2_DATA_LOCATION_APPROVED" != "true" ]]; then
+            echo '::error::Approve the R2 ENAM location first: set production-backup variable ALHABIB_R2_DATA_LOCATION_APPROVED=true.'
+            exit 1
+          fi
+          for variable in NEON_BACKUP_READ_ONLY_URL ALHABIB_R2_ACCOUNT_ID AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "::error::Missing environment secret: $variable"
+              exit 1
+            fi
+          done
+          python3 - <<'PY'
+          import os, re
+          from urllib.parse import urlparse, parse_qs
+          u = urlparse(os.environ['NEON_BACKUP_READ_ONLY_URL'])
+          q = parse_qs(u.query)
+          assert u.scheme in ('postgres', 'postgresql'), 'Expected PostgreSQL URL'
+          assert u.username == 'alhabib_backup_reader', 'Backup must use the dedicated read-only role'
+          assert u.hostname and u.hostname.endswith('.neon.tech'), 'Expected Neon host'
+          assert u.path == '/alhabib_cms', 'Expected alhabib_cms database'
+          assert q.get('sslmode', [''])[0] in ('require', 'verify-full', 'verify-ca'), 'sslmode=require or stronger is mandatory'
+          assert re.fullmatch('[0-9a-fA-F]{32}', os.environ['ALHABIB_R2_ACCOUNT_ID']), 'Invalid Cloudflare account ID'
+          print('Read-only Neon URI, TLS and R2 account syntax verified (credentials not logged).')
+          PY
+          command -v aws >/dev/null || { echo '::error::AWS CLI is missing from this runner'; exit 1; }
+          command -v docker >/dev/null || { echo '::error::Docker is missing from this runner'; exit 1; }
+          endpoint="https://$ALHABIB_R2_ACCOUNT_ID.r2.cloudflarestorage.com"
+          aws --endpoint-url "$endpoint" s3api head-bucket --bucket alhabib-cms-backups >/dev/null
+          echo 'Private R2 bucket is reachable.'
+
+      - name: Dump PostgreSQL 18, upload to R2, and restore in network-isolated local database
+        shell: bash
+        run: |
+          set -euo pipefail
+          backup_dir="$(mktemp -d "$RUNNER_TEMP/alhabib-backup.XXXXXX")"
+          chmod 700 "$backup_dir"
+          restore_container="alhabib-restore-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          cleanup() {
+            docker rm -f "$restore_container" >/dev/null 2>&1 || true
+            rm -rf "$backup_dir"
+          }
+          trap cleanup EXIT
+          export BACKUP_FILE="alhabib_cms-$(date -u +%Y%m%dT%H%M%SZ)-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.pgdump"
+          endpoint="https://$ALHABIB_R2_ACCOUNT_ID.r2.cloudflarestorage.com"
+          object_key="daily/$BACKUP_FILE"
+
+          # The URI is passed only as an environment variable, never as a shell argument.
+          # PostgreSQL 18 is required: the Neon source server runs PostgreSQL 18.
+          docker run --rm --user 0:0 \
+            --env NEON_BACKUP_READ_ONLY_URL --env BACKUP_FILE \
+            --mount "type=bind,src=$backup_dir,dst=/backup" \
+            postgres:18-alpine sh -ec \
+            'exec pg_dump --dbname="$NEON_BACKUP_READ_ONLY_URL" --format=custom --no-owner --no-acl --schema=public --file="/backup/$BACKUP_FILE"'
+
+          test -s "$backup_dir/$BACKUP_FILE"
+          docker run --rm --env BACKUP_FILE \
+            --mount "type=bind,src=$backup_dir,dst=/backup,readonly" \
+            postgres:18-alpine sh -ec \
+            'pg_restore --list "/backup/$BACKUP_FILE" | grep -q "TABLE DATA public alhabib_cms_state"'
+
+          # The dump remains an ordinary pg_dump file. R2 handles storage encryption.
+          aws --endpoint-url "$endpoint" s3 cp "$backup_dir/$BACKUP_FILE" \
+            "s3://alhabib-cms-backups/$object_key" --no-progress --only-show-errors
+          aws --endpoint-url "$endpoint" s3 cp \
+            "s3://alhabib-cms-backups/$object_key" "$backup_dir/roundtrip.pgdump" \
+            --no-progress --only-show-errors
+          cmp --silent "$backup_dir/$BACKUP_FILE" "$backup_dir/roundtrip.pgdump" || {
+            echo '::error::R2 upload/download integrity check failed'
+            exit 1
+          }
+
+          # The verification DB is local to the ephemeral GitHub runner, with NO networking.
+          docker run -d --rm --network none \
+            --name "$restore_container" \
+            -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=alhabib_restore_test \
+            postgres:18-alpine >/dev/null
+          ready=0
+          for attempt in $(seq 1 40); do
+            if docker exec "$restore_container" pg_isready -U postgres -d alhabib_restore_test >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" -eq 1 || { echo '::error::Isolated restore DB did not become ready'; exit 1; }
+          docker cp "$backup_dir/roundtrip.pgdump" "$restore_container:/tmp/roundtrip.pgdump"
+          docker exec -u root "$restore_container" chown postgres:postgres /tmp/roundtrip.pgdump
+          docker exec "$restore_container" pg_restore -U postgres -d alhabib_restore_test \
+            --no-owner --no-acl --exit-on-error /tmp/roundtrip.pgdump
+
+          integrity="$(docker exec "$restore_container" psql -U postgres -d alhabib_restore_test -Atqc \
+            "SELECT CASE WHEN count(*)=1 THEN 'ok' ELSE 'invalid' END FROM public.alhabib_cms_state WHERE id=1 AND version >= 0 AND jsonb_typeof(payload->'users')='array' AND jsonb_typeof(payload->'tables')='object'")"
+          test "$integrity" = "ok" || { echo '::error::Restored CMS structure validation failed'; exit 1; }
+
+          size="$(stat -c '%s' "$backup_dir/$BACKUP_FILE")"
+          digest="$(sha256sum "$backup_dir/$BACKUP_FILE" | cut -d' ' -f1)"
+          {
+            echo '### Alhabib CMS backup verified'
+            echo "- R2 private object: \`$object_key\`"
+            echo "- Size: $size bytes"
+            echo "- SHA-256: \`$digest\`"
+            echo '- R2 download byte comparison: passed'
+            echo '- PostgreSQL 18 offline restore in a network-isolated container: passed'
+            echo '- No dump file uploaded as a GitHub artifact'
+          } >> "$GITHUB_STEP_SUMMARY"
