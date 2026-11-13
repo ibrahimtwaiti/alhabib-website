@@ -78,6 +78,8 @@ h1,h2,h3,h4,.section-title{color:var(--graphite)}
 .footer{background:#57585a;border-top:7px solid #77c9b6;color:white}
 .footer:before{content:'';display:block;height:3px;background:linear-gradient(90deg,#8d517a 0 40%,#ffffff 40% 60%,#77c9b6 60%)}
 .footer a:hover{color:#b5f0dc}
+/* Footer heading must remain white despite the global graphite h2 theme. */
+.footer .footer-social-title{color:#ffffff}
 .admin-shell{background:linear-gradient(135deg,#f4faf8,#f8f4f7)}
 .admin-sidebar{background:#57585a;color:white;border-inline-end:5px solid #77c9b6}
 .admin-link{color:#edf7f4;border-inline-start:3px solid transparent}

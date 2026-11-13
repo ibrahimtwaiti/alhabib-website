@@ -87,7 +87,9 @@ test('homepage footer shows approved social profiles accessibly in both language
   ['snapchat','https://www.snapchat.com/add/alhabib_physio'],
   ['tiktok','https://www.tiktok.com/@alhabib_physio']
  ];
- await expect(footer.getByRole('heading',{name:'تابع مركز الحبيب'})).toBeVisible();
+ const socialTitle=footer.getByRole('heading',{name:'تابع مركز الحبيب'});
+ await expect(socialTitle).toBeVisible();
+ expect(await socialTitle.evaluate(el=>getComputedStyle(el).color),'social heading must contrast against the dark footer').toBe('rgb(255, 255, 255)');
  for(const [platform,href] of expected){
   const link=footer.locator('a[href="'+href+'"]');
   await expect(link,platform).toHaveCount(1);
@@ -95,6 +97,8 @@ test('homepage footer shows approved social profiles accessibly in both language
   await expect(link).toHaveAttribute('rel',/noopener noreferrer/);
  }
  await page.getByRole('button',{name:'Switch to English'}).click();
- await expect(footer.getByRole('heading',{name:'Follow Alhabib Center'})).toBeVisible();
+ const titleEn=footer.getByRole('heading',{name:'Follow Alhabib Center'});
+ await expect(titleEn).toBeVisible();
+ expect(await titleEn.evaluate(el=>getComputedStyle(el).color)).toBe('rgb(255, 255, 255)');
  await expect(footer.getByRole('link',{name:'Open Alhabib Center on Instagram'})).toBeVisible();
 });
