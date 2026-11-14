@@ -87,6 +87,11 @@ test('homepage footer shows approved social profiles accessibly in both language
   ['snapchat','https://www.snapchat.com/add/alhabib_physio'],
   ['tiktok','https://www.tiktok.com/@alhabib_physio']
  ];
+ for(const heading of ['روابط سريعة','تواصل معنا']){
+  const element=footer.getByRole('heading',{name:heading});
+  await expect(element).toBeVisible();
+  expect(await element.evaluate(el=>getComputedStyle(el).color),`${heading} must be white against the dark footer`).toBe('rgb(255, 255, 255)');
+ }
  const socialTitle=footer.getByRole('heading',{name:'تابع مركز الحبيب'});
  await expect(socialTitle).toBeVisible();
  expect(await socialTitle.evaluate(el=>getComputedStyle(el).color),'social heading must contrast against the dark footer').toBe('rgb(255, 255, 255)');
@@ -97,6 +102,11 @@ test('homepage footer shows approved social profiles accessibly in both language
   await expect(link).toHaveAttribute('rel',/noopener noreferrer/);
  }
  await page.getByRole('button',{name:'Switch to English'}).click();
+ for(const heading of ['Quick links','Get in touch']){
+  const element=footer.getByRole('heading',{name:heading});
+  await expect(element).toBeVisible();
+  expect(await element.evaluate(el=>getComputedStyle(el).color),`${heading} must be white against the dark footer`).toBe('rgb(255, 255, 255)');
+ }
  const titleEn=footer.getByRole('heading',{name:'Follow Alhabib Center'});
  await expect(titleEn).toBeVisible();
  expect(await titleEn.evaluate(el=>getComputedStyle(el).color)).toBe('rgb(255, 255, 255)');
