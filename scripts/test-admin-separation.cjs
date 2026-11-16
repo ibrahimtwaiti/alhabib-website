@@ -20,10 +20,10 @@ function check(hostname,pathname){
  return exports.middleware({nextUrl:{hostname,pathname},url:'https://'+hostname+pathname});
 }
 const publicHost='alhabib-website.vercel.app',adminHost='alhabib-center-admin.vercel.app';
-for(const url of ['/admin','/admin/login','/admin/dashboard','/admin/setup','/api/admin/login','/api/admin/users']){
+for(const url of ['/admin','/admin/login','/admin/dashboard','/admin/setup','/api/admin/login','/api/admin/users','/api/cms']){
  assert.equal(check(publicHost,url).status,404,'Blocked on public: '+url);
 }
-for(const url of ['/','/booking','/about','/api/cms']){
+for(const url of ['/','/booking','/about','/api/public']){
  assert.equal(check(publicHost,url).status,200,'Public route stays available: '+url);
 }
 assert.equal(check(adminHost,'/').status,307);
