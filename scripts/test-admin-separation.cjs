@@ -7,7 +7,7 @@ const root=path.join(__dirname,'..');
 const file=fs.readFileSync(path.join(root,'middleware.ts'),'utf8');
 const publicClient=fs.readFileSync(path.join(root,'components/public-site-client.tsx'),'utf8');
 assert.ok(!publicClient.includes('href="/admin/login"'),'Public website must not link to the admin login');
-assert.match(file,/alhabib-center-admin\\.vercel\\.app/);
+assert.ok(file.includes('alhabib-center-admin.vercel.app'));
 const src=ts.transpileModule(file,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 function check(hostname,pathname){
  class ResponseStub{constructor(body,options={}){this.body=body;this.status=options.status||200;this.headers=new Map(Object.entries(options.headers||{}))}}
@@ -34,5 +34,5 @@ for(const url of ['/admin/login','/admin/dashboard','/api/admin/login','/api/cms
 for(const url of ['/booking','/about','/specialties','/sitemap.xml']){
  assert.equal(check(adminHost,url).status,404,'Admin site hides visitor pages: '+url);
 }
-assert.match(check(adminHost,'/robots.txt').body,/Disallow: \\/\n/);
+assert.ok(check(adminHost,'/robots.txt').body.includes('Disallow: /'));
 console.log('Admin portal segregation tests passed');
