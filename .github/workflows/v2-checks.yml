@@ -67,7 +67,7 @@ jobs:
       - name: Install Chromium and its system libraries
         run: npx playwright install --with-deps chromium
       - name: Build for local browser acceptance tests
-        run: npm run build
+        run: ALHABIB_E2E=1 npm run build
       - name: Chromium acceptance tests
         run: npm run test:browser
       - name: Store browser failure traces
