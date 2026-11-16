@@ -18,7 +18,7 @@ function load(file){
  if(cache[file])return cache[file].exports;
  const mod={exports:{}};cache[file]=mod;
  const source=fs.readFileSync(file,'utf8');
- const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
+ const js=ts.transpileModule(source,{fileName:file,compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
  vm.runInNewContext(js,{module:mod,exports:mod.exports,require:name=>{
   if(mocks[name])return mocks[name];
   if(name.endsWith('.module.css'))return new Proxy({},{get:(_,key)=>String(key)});

@@ -73,7 +73,7 @@ export function AdvertisingSlot({placement,lang='ar'}:{placement:AdPlacement;lan
  const mobile=ad.mobile_image_url?getImageProps({src:ad.mobile_image_url,alt:ad.alt,width:1000,height:750,sizes:'100vw'}).props:null;
  const picture=<picture>{mobile&&<source media="(max-width: 640px)" srcSet={mobile.srcSet} sizes={mobile.sizes}/>}<img {...desktop} className={styles.image} fetchPriority={high?'high':'auto'} onError={()=>setFailed(old=>[...old,ad.id+':'+ad.image_url+':'+ad.mobile_image_url])}/></picture>;
  return <section ref={root} className={styles.section} data-ad-placement={placement} aria-label={en?'Clinic announcements':'إعلانات المركز'} aria-roledescription={en?'carousel':'عارض إعلانات'}
- onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)} onFocusCapture={()=>setFocused(true)} onBlurCapture={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node))setFocused(false)} onKeyDown={e=>{
+ onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)} onFocusCapture={()=>setFocused(true)} onBlurCapture={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node))setFocused(false)}} onKeyDown={e=>{
  if(e.target!==e.currentTarget||!multiple)return;
  if(e.key==='ArrowLeft'){e.preventDefault();go(en?-1:1)}if(e.key==='ArrowRight'){e.preventDefault();go(en?1:-1)}
  }} tabIndex={multiple?0:undefined}>
