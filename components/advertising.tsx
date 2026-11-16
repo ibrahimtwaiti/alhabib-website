@@ -86,14 +86,14 @@ export function AdvertisingSlot({placement,lang='ar'}:{placement:AdPlacement;lan
  {ad.target_url?<a href={ad.target_url} className={styles.imageLink} aria-label={ad.title||ad.alt}>{picture}</a>:picture}
  </div>
  {multiple&&settings.show_arrows&&<div className={styles.arrows}>
- <button type="button" onClick={()=>go(-1)} aria-label={en?'Previous announcement':'الإعلان السابق'}>{en?<ChevronLeft/>:<ChevronRight/>}</button>
- <button type="button" onClick={()=>go(1)} aria-label={en?'Next announcement':'الإعلان التالي'}>{en?<ChevronRight/>:<ChevronLeft/>}</button>
+ <button type="button" onClick={()=>go(-1)} aria-label={en?'Previous announcement':'الإعلان السابق'}>{en?<ChevronLeft aria-hidden="true"/>:<ChevronRight aria-hidden="true"/>}</button>
+ <button type="button" onClick={()=>go(1)} aria-label={en?'Next announcement':'الإعلان التالي'}>{en?<ChevronRight aria-hidden="true"/>:<ChevronLeft aria-hidden="true"/>}</button>
  </div>}
  </div>
  {(ads.some(a=>a.title||a.description))&&<div className={styles.caption} aria-live={paused?'polite':'off'}><strong>{ad.title}</strong><p>{ad.description}</p></div>}
  {multiple&&(settings.show_dots||settings.autoplay)&&<div className={styles.controls}>
  {settings.show_dots&&<div className={styles.dots}>{ads.map((item,i)=><button key={item.id} type="button" aria-label={(en?'Show announcement ':'عرض الإعلان ')+(i+1)} aria-current={i===current?'true':undefined} onClick={()=>{setPaused(true);setIndex(i)}}/>)}</div>}
- {settings.autoplay&&!reduced&&<button className={styles.play} type="button" aria-label={paused?(en?'Resume autoplay':'استئناف التشغيل'):(en?'Pause autoplay':'إيقاف التشغيل مؤقتاً')} onClick={()=>setPaused(v=>!v)}>{paused?<Play size={16}/>:<Pause size={16}/>}</button>}
+ {settings.autoplay&&!reduced&&<button className={styles.play} type="button" aria-label={paused?(en?'Resume autoplay':'استئناف التشغيل'):(en?'Pause autoplay':'إيقاف التشغيل مؤقتاً')} onClick={()=>setPaused(v=>!v)}>{paused?<Play size={16} aria-hidden="true"/>:<Pause size={16} aria-hidden="true"/>}</button>}
  </div>}
  </div></section>;
 }
