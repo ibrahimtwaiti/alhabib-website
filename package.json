@@ -24,7 +24,8 @@
     "test:visual-baseline": "node scripts/test-visual-baseline.cjs",
     "test:multi-specialty": "node scripts/test-multi-specialty.cjs",
     "test:specialist-save": "node scripts/test-specialist-save.cjs",
-    "test:admin-separation": "node scripts/test-admin-separation.cjs"
+    "test:admin-separation": "node scripts/test-admin-separation.cjs",
+    "prebuild": "npm run test:admin-separation"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
