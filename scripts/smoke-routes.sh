@@ -8,10 +8,29 @@ for i in {1..40}; do
   if curl --max-time 2 -fsS "http://127.0.0.1:$PORT/" -o /dev/null; then break; fi
   sleep 1
 done
-for path in / /about /team /team/hisham-hendawy /specialties /specialties/nutrition /booking /contact /blog /achievements /privacy /terms /admin/login; do
+for path in / /about /team /team/hisham-hendawy /specialties /specialties/nutrition /booking /contact /blog /achievements /privacy /terms; do
   curl --max-time 12 -fsS "http://127.0.0.1:$PORT$path" -o /dev/null
   echo "OK $path"
 done
+
+# Visitors must not reach administrative pages or mutation APIs by typing URLs.
+for path in /admin /admin/login /admin/setup /admin/dashboard /api/admin/login /api/cms; do
+  code=$(curl --max-time 12 -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT$path")
+  if [[ "$code" != "404" ]]; then
+    echo "ERROR public route $path returned $code instead of 404" >&2
+    exit 1
+  fi
+  echo "OK public admin isolation $path (404)"
+done
+
+# The same server serves the administrative portal only on its dedicated host.
+code=$(curl --max-time 12 -sS -o /dev/null -w '%{http_code}' \
+  -H 'Host: alhabib-center-admin.vercel.app' "http://127.0.0.1:$PORT/admin/login")
+if [[ "$code" != "200" ]]; then
+  echo "ERROR dedicated admin host login returned $code instead of 200" >&2
+  exit 1
+fi
+echo "OK dedicated admin login (200)"
 
 # Assert rendered V3 booking HTML is deliberately minimal, not just HTTP 200.
 curl --max-time 15 -fsS "http://127.0.0.1:$PORT/booking" -o /tmp/alhabib-v3-booking.html

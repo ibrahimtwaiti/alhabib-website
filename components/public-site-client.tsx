@@ -59,7 +59,7 @@ function Footer({lang,visuals,socialLinks}:{lang:Language,visuals:SiteVisuals,so
     </nav>
    </div>
   </section>}
-  <div className="border-t border-white/10"><div className="container py-6 flex flex-wrap justify-between gap-4 text-xs text-[#d4c5d0]"><span>© {new Date().getFullYear()} ALHABIB. {tr(lang,'جميع الحقوق محفوظة','All rights reserved')}</span><div className="flex gap-5"><Link href="/privacy">{tr(lang,'سياسة الخصوصية','Privacy')}</Link><Link href="/terms">{tr(lang,'الشروط والأحكام','Terms')}</Link><Link href="/admin/login">{tr(lang,'دخول الإدارة','Admin')}</Link></div></div></div>
+  <div className="border-t border-white/10"><div className="container py-6 flex flex-wrap justify-between gap-4 text-xs text-[#d4c5d0]"><span>© {new Date().getFullYear()} ALHABIB. {tr(lang,'جميع الحقوق محفوظة','All rights reserved')}</span><div className="flex gap-5"><Link href="/privacy">{tr(lang,'سياسة الخصوصية','Privacy')}</Link><Link href="/terms">{tr(lang,'الشروط والأحكام','Terms')}</Link></div></div></div>
  </footer>;
 }
 

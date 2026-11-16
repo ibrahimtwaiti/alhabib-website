@@ -13,6 +13,6 @@ module.exports=defineConfig({
   url:'http://127.0.0.1:3177/',
   reuseExistingServer:false,
   timeout:120000,
-  env:{NEXT_TELEMETRY_DISABLED:'1'}
+  env:{NEXT_TELEMETRY_DISABLED:'1',ALHABIB_E2E:'1'}
  }
 });
