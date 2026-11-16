@@ -19,6 +19,7 @@ test('public pages expose canonical and unique SEO descriptions; admin is noinde
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href',new RegExp(path==='/'?'vercel\\.app/?$':'/'+path.slice(1)+'$'));
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content',/.+/);
  }
+ await page.setExtraHTTPHeaders({'x-alhabib-test-admin':'1'});
  await page.goto('/admin/login');
  await expect(page.locator('meta[name="robots"]').first()).toHaveAttribute('content',/noindex/);
 });
