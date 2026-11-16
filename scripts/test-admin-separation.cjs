@@ -17,7 +17,7 @@ function check(hostname,pathname){
  }
  const exports={};
  vm.runInNewContext(src,{exports,process:{env:{NODE_ENV:'production'}},URL,require:(id)=>id==='next/server'?{NextResponse:NextResponseStub}:{}});
- return exports.middleware({nextUrl:{hostname,pathname},url:'https://'+hostname+pathname});
+ return exports.middleware({headers:{get:(key)=>key==='host'?hostname:null},nextUrl:{hostname:'127.0.0.1',pathname},url:'https://'+hostname+pathname});
 }
 const publicHost='alhabib-website.vercel.app',adminHost='alhabib-center-admin.vercel.app';
 for(const url of ['/admin','/admin/login','/admin/dashboard','/admin/setup','/api/admin/login','/api/admin/users','/api/cms']){
