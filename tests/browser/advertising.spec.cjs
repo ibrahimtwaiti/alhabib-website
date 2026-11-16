@@ -2,13 +2,14 @@ const {test,expect}=require('@playwright/test');
 const ad=(id,extra={})=>({id,title:'إعلان '+id,description:'تفاصيل العرض',alt:'صورة الإعلان '+id,image_url:'/assets/alhabib-logo.webp',mobile_image_url:'/assets/team/heba-alhabib.webp',target_url:'/booking',is_active:true,sort_order:0,placement:'home_top',starts_at:null,ends_at:null,created_at:'2026-11-17T00:00:00Z',updated_at:'2026-11-17T00:00:00Z',...extra});
 const settings={autoplay:true,interval_ms:3000,transition_ms:100,transition:'fade',show_arrows:true,show_dots:true};
 async function fixture(page,ads=[],config=settings){
- let items=ads;
+ let items=ads,requests=0;
  await page.route('**/api/advertising',route=>{
+  requests++;
   const now=Date.now(),future=items.flatMap(a=>[a.starts_at,a.ends_at].filter(Boolean).map(Date.parse)).filter(t=>t>now);
   return route.fulfill({json:{ads:items.filter(a=>a.is_active&&(!a.starts_at||Date.parse(a.starts_at)<=now)&&(!a.ends_at||Date.parse(a.ends_at)>now)),settings:config,server_now:now,next_change_at:future.length?Math.min(...future):null}});
  });
  await page.goto('/');
- return {set:ads=>{items=ads},refresh:()=>page.evaluate(()=>window.dispatchEvent(new Event('focus')))};
+ return {set:ads=>{items=ads},refresh:async()=>{const before=requests;await expect.poll(async()=>{await page.evaluate(()=>window.dispatchEvent(new Event('focus')));return requests}).toBeGreaterThan(before)}};
 }
 test('empty, disable, delete last, expired and re-add remove the entire section without layout gaps',async({page})=>{
  const f=await fixture(page);

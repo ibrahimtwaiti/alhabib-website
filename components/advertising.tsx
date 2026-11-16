@@ -12,6 +12,7 @@ export function AdvertisingProvider({initial,children}:{initial:PublicAdvertisin
  useEffect(()=>{setData(initial);setNow(initial.server_now)},[initial]);
  useEffect(()=>{
   let cancelled=false,inFlight=false;
+  const receivedAt=Date.now();
   const controller=new AbortController();
   async function refresh(){
    if(inFlight||document.hidden)return;
@@ -26,7 +27,7 @@ export function AdvertisingProvider({initial,children}:{initial:PublicAdvertisin
    }finally{inFlight=false}
   }
   const interval=setInterval(refresh,60000);
-  const visible=()=>{if(!document.hidden)void refresh()};
+  const visible=()=>{if(!document.hidden){setNow(data.server_now+Date.now()-receivedAt);void refresh()}};
   window.addEventListener('focus',visible);document.addEventListener('visibilitychange',visible);
   const remaining=data.next_change_at===null?null:Math.max(0,data.next_change_at-data.server_now);
   const boundary=remaining===null?undefined:setTimeout(()=>{
