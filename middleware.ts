@@ -14,7 +14,8 @@ export function middleware(request:NextRequest){
   (process.env.NODE_ENV==='development'&&process.env.ADMIN_PORTAL_ENABLED==='1');
  const adminPath=pathname==='/admin'||pathname.startsWith('/admin/');
  const adminApi=pathname==='/api/admin'||pathname.startsWith('/api/admin/');
- const isAdminResource=adminPath||adminApi;
+ const cmsApi=pathname==='/api/cms'||pathname.startsWith('/api/cms/');
+ const isAdminResource=adminPath||adminApi||cmsApi;
  const notFound=()=>new NextResponse('Not Found',{
   status:404,
   headers:{'Cache-Control':'no-store','X-Robots-Tag':'noindex, nofollow, noarchive'}
