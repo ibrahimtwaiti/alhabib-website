@@ -9,15 +9,15 @@ const publicClient=fs.readFileSync(path.join(root,'components/public-site-client
 assert.ok(!publicClient.includes('href="/admin/login"'),'Public website must not link to the admin login');
 assert.ok(file.includes('alhabib-center-admin.vercel.app'));
 const src=ts.transpileModule(file,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
-function check(hostname,pathname){
+function check(hostname,pathname,e2e=false){
  class ResponseStub{constructor(body,options={}){this.body=body;this.status=options.status||200;this.headers=new Map(Object.entries(options.headers||{}))}}
  class NextResponseStub extends ResponseStub{
   static next(){return new NextResponseStub(null,{status:200})}
   static redirect(url,status){const r=new NextResponseStub(null,{status});r.url=String(url);return r}
  }
  const exports={};
- vm.runInNewContext(src,{exports,process:{env:{NODE_ENV:'production'}},URL,require:(id)=>id==='next/server'?{NextResponse:NextResponseStub}:{}});
- return exports.middleware({headers:{get:(key)=>key==='host'?hostname:null},nextUrl:{hostname:'127.0.0.1',pathname},url:'https://'+hostname+pathname});
+ vm.runInNewContext(src,{exports,process:{env:{NODE_ENV:'production',ALHABIB_E2E:e2e?'1':'0'}},URL,require:(id)=>id==='next/server'?{NextResponse:NextResponseStub}:{}});
+ return exports.middleware({headers:{get:(key)=>key==='host'?hostname:key==='x-alhabib-test-admin'&&e2e?'1':null},nextUrl:{hostname:'127.0.0.1',pathname},url:'https://'+hostname+pathname});
 }
 const publicHost='alhabib-website.vercel.app',adminHost='alhabib-center-admin.vercel.app';
 for(const url of ['/admin','/admin/login','/admin/dashboard','/admin/setup','/api/admin/login','/api/admin/users','/api/cms']){
@@ -35,4 +35,6 @@ for(const url of ['/booking','/about','/specialties','/sitemap.xml']){
  assert.equal(check(adminHost,url).status,404,'Admin site hides visitor pages: '+url);
 }
 assert.ok(check(adminHost,'/robots.txt').body.includes('Disallow: /'));
+assert.equal(check('127.0.0.1','/admin/login',true).status,200,'Opt-in E2E host may serve admin only during tests');
+assert.equal(check('127.0.0.1','/admin/login').status,404,'Default localhost still blocks admin');
 console.log('Admin portal segregation tests passed');
