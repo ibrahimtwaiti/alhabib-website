@@ -3,7 +3,7 @@ import {currentUser,publicUser,hashPassword,validateOrigin} from '@/lib/admin-au
 import {readCms,mutateCms,newRow,type CmsUser} from '@/lib/cms-store';
 import {randomUUID} from 'node:crypto';
 export const runtime='nodejs';export const dynamic='force-dynamic';
-const ACCESS=['specialists','specialties','availability','blog','achievements','settings','sections','media','departments'];
+const ACCESS=['advertising','specialists','specialties','availability','blog','achievements','settings','sections','media','departments'];
 function guard(user:CmsUser|null){return user?.role==='super_admin'}
 export async function GET(){const user=await currentUser();if(!guard(user))return NextResponse.json({error:'غير مصرح'},{status:403});const {store}=await readCms();return NextResponse.json({users:store.users.map(publicUser)},{headers:{'Cache-Control':'no-store'}})}
 export async function POST(req:Request){const user=await currentUser();if(!guard(user)||!await validateOrigin(req))return NextResponse.json({error:'غير مصرح'},{status:403});try{

@@ -10,6 +10,7 @@ import BookingForm from '@/components/booking-form';
 import PageBanner from '@/components/page-banner';
 import {unoptimizedPublicImage} from '@/lib/public-image';
 import {matchesSpecialistSpecialty} from '@/lib/specialist-specialties';
+import {AdvertisingProvider,AdvertisingSlot} from '@/components/advertising';
 import PublicMotion from '@/components/public-motion';
 import type {SiteSection} from '@/components/admin-sections';
 import type {SiteVisuals} from '@/components/use-site-visuals';
@@ -118,5 +119,5 @@ export default function PublicSiteClient({page='home',slug,initialData}:{page?:P
  const [lang,setLang]=useState<Language>('ar');const {people,services,visuals,about,articles,highlights,sections,socialLinks}=initialData;
  useEffect(()=>{try{const v=window.localStorage.getItem('alhabib-language');if(v==='ar'||v==='en')setLang(v)}catch{}},[]);
  useEffect(()=>{try{window.localStorage.setItem('alhabib-language',lang)}catch{};document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr'},[lang]);
- return <div className="public-site" dir={lang==='ar'?'rtl':'ltr'}><PublicMotion/><a href="#main-content" className="skip-link">{tr(lang,'انتقل إلى المحتوى','Skip to content')}</a><Header lang={lang} setLang={setLang} visuals={visuals}/><main id="main-content" tabIndex={-1}>{page==='home'?<Home lang={lang} people={people} articles={articles} services={services} visuals={visuals} sections={sections}/>:<ContentPage lang={lang} page={page} slug={slug} people={people} services={services} articles={articles} highlights={highlights} about={about}/>}</main><Footer lang={lang} visuals={visuals} socialLinks={socialLinks}/></div>;
+ return <AdvertisingProvider initial={initialData.advertising}><div className="public-site" dir={lang==='ar'?'rtl':'ltr'}><PublicMotion/><a href="#main-content" className="skip-link">{tr(lang,'انتقل إلى المحتوى','Skip to content')}</a><Header lang={lang} setLang={setLang} visuals={visuals}/><main id="main-content" tabIndex={-1}>{page==='home'&&<AdvertisingSlot placement="home_top" lang={lang}/>}{(page==='specialties'||page==='specialty')&&<AdvertisingSlot placement="services" lang={lang}/>}{page==='home'?<Home lang={lang} people={people} articles={articles} services={services} visuals={visuals} sections={sections}/>:<ContentPage lang={lang} page={page} slug={slug} people={people} services={services} articles={articles} highlights={highlights} about={about}/>}<AdvertisingSlot placement="before_footer" lang={lang}/></main><Footer lang={lang} visuals={visuals} socialLinks={socialLinks}/></div></AdvertisingProvider>;
 }
