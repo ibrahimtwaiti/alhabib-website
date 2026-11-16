@@ -89,7 +89,7 @@ export default function AdminAdvertising(){
  <button type="button" className="button-outline" disabled={busy} onClick={()=>run(async()=>{accept(await call());setNotice('تم تحديث القائمة.')})}><RefreshCw size={16}/>تحديث القائمة</button></div>
  {error&&<p role="alert" className="rounded-xl p-4 bg-red-50 text-red-700">{error}</p>}
  {notice&&<p role="status" className="rounded-xl p-4 bg-green-50 text-green-800">{notice}</p>}
- {!snapshot?<p role="status">جارٍ تحميل الإعلانات...</p>:<>
+ {!snapshot?<p role="status">{error?'استخدم «تحديث القائمة» لإعادة المحاولة.':'جارٍ تحميل الإعلانات...'}</p>:<>
  <div className="grid xl:grid-cols-2 gap-6 items-start">
  <form ref={formRef} onSubmit={save} className="card p-6" aria-label="بيانات الإعلان">
  <fieldset disabled={busy} className="space-y-4"><legend className="font-bold text-lg mb-4">{editing?'تعديل الإعلان':'إضافة إعلان جديد'}</legend>
