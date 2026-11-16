@@ -10,7 +10,8 @@ const ADMIN_PORTAL_HOST='alhabib-center-admin.vercel.app';
 export function middleware(request:NextRequest){
  const pathname=request.nextUrl.pathname;
  const hostname=(request.headers.get('host')||request.nextUrl.hostname).toLowerCase().replace(/:\d+$/,'').replace(/\.$/,'');
- const adminPortal=hostname===ADMIN_PORTAL_HOST||
+ const e2ePortal=process.env.ALHABIB_E2E==='1'&&request.headers.get('x-alhabib-test-admin')==='1';
+ const adminPortal=hostname===ADMIN_PORTAL_HOST||e2ePortal||
   (process.env.NODE_ENV==='development'&&process.env.ADMIN_PORTAL_ENABLED==='1');
  const adminPath=pathname==='/admin'||pathname.startsWith('/admin/');
  const adminApi=pathname==='/api/admin'||pathname.startsWith('/api/admin/');
