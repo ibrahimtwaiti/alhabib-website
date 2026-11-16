@@ -1,5 +1,8 @@
 const {test,expect}=require('@playwright/test');
 const {setTimeout:delay}=require('node:timers/promises');
+
+// Browser-only header activates the admin hostname gate in local E2E builds.
+test.beforeEach(async({page})=>{await page.setExtraHTTPHeaders({'x-alhabib-test-admin':'1'});});
 /** Browser mocks authenticate only inside Playwright's test page. No real admin
  * account, production session, CMS record, Blob token or Neon data is changed. */
 async function mockAdmin(page,options={}){
