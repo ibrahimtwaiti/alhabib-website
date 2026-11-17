@@ -46,6 +46,8 @@ jobs:
         run: npm run test:visual-baseline
       - name: V3 database and upload isolation checks
         run: npm run test:v3
+      - name: Advertising CRUD, scheduling and zero-layout rendering tests
+        run: node scripts/test-advertising.cjs
       - name: TypeScript check
         run: npm run lint
       - name: Production build

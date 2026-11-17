@@ -11,7 +11,7 @@ export async function POST(req:Request){
   ? process.env.V3_PREVIEW_BLOB_READ_WRITE_TOKEN:undefined;
  if(preview&&!dedicatedToken&&!process.env.BLOB_READ_WRITE_TOKEN)
   return NextResponse.json({error:'التخزين غير متصل: يلزم ربط Vercel Blob قبل رفع الصور.'},{status:503});
- const user=await currentUser();if(!hasAccess(user,'media')&&!hasAccess(user,'specialists')&&!hasAccess(user,'specialties')&&!hasAccess(user,'settings')&&!hasAccess(user,'blog')&&!hasAccess(user,'achievements')&&!hasAccess(user,'sections'))return NextResponse.json({error:'لا تملك صلاحية رفع الصور'},{status:403});
+ const user=await currentUser();if(!hasAccess(user,'advertising')&&!hasAccess(user,'media')&&!hasAccess(user,'specialists')&&!hasAccess(user,'specialties')&&!hasAccess(user,'settings')&&!hasAccess(user,'blog')&&!hasAccess(user,'achievements')&&!hasAccess(user,'sections'))return NextResponse.json({error:'لا تملك صلاحية رفع الصور'},{status:403});
  if(!await validateOrigin(req))return NextResponse.json({error:'طلب غير موثوق'},{status:403});
  try{const f=await req.formData();const file=f.get('file');if(!(file instanceof File)||file.size>5*1024*1024||file.size<10)return NextResponse.json({error:'حجم الصورة غير صالح'},{status:400});
  const types:Record<string,string>={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/avif':'avif'};const ext=types[file.type];if(!ext)return NextResponse.json({error:'صيغة الصورة غير مدعومة'},{status:400});

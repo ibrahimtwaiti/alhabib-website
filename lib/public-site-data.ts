@@ -1,6 +1,7 @@
 /** Visible site data only: converts CMS rows into content ready to render on the server.
  * Never serialize admin users, password hashes or unpublished CMS entries to clients.
  */
+import {publicAdvertising,type PublicAdvertising} from './advertising';
 import {profiles,specialties,type Profile,type Specialty} from './clinic-data';
 import {CATALOG_SETTING_KEY,builtinProfileId,reconcileProfiles,reconcileSpecialties,type CatalogMode,type DbProfile,type DbSpecialty} from './catalog';
 import {isAllowedImageUrl} from './image-urls';
@@ -15,7 +16,7 @@ import {SOCIAL_LINKS_KEY,getSocialLinks,type SocialLinks} from './social-links';
 
 export type PublicArticle={id:string,title_ar:string,title_en:string,excerpt_ar:string,excerpt_en:string,body_ar:string,body_en:string,cover_image_url:string|null};
 export type PublicAchievement={id:string,title_ar:string,title_en:string,description_ar:string,description_en:string,image_url:string|null};
-export type PublicSiteData={people:Profile[];services:Specialty[];visuals:SiteVisuals;about:AboutContent;socialLinks:SocialLinks;articles:PublicArticle[];highlights:PublicAchievement[];sections:SiteSection[]};
+export type PublicSiteData={advertising:PublicAdvertising;people:Profile[];services:Specialty[];visuals:SiteVisuals;about:AboutContent;socialLinks:SocialLinks;articles:PublicArticle[];highlights:PublicAchievement[];sections:SiteSection[]};
 type Row=Record<string,unknown>;
 const text=(s:unknown)=>typeof s==='string'?s:'';
 const items=(store:Pick<CmsStore,'tables'>,table:string):Row[]=>Array.isArray(store.tables?.[table])?store.tables[table]:[];
@@ -65,5 +66,5 @@ export function publicDataFromStore(store:Pick<CmsStore,'tables'>):PublicSiteDat
   image_url:typeof r.image_url==='string'&&isAllowedImageUrl(r.image_url)?r.image_url:null
  }));
  const sections=sortBy(items(store,'dynamic_sections').filter(r=>r.is_enabled===true),'sort_order',true).slice(0,30) as unknown as SiteSection[];
- return {people,services,visuals,about:getAboutContent(setting(ABOUT_CONTENT_KEY)),socialLinks:getSocialLinks(setting(SOCIAL_LINKS_KEY)),articles,highlights,sections};
+ return {advertising:publicAdvertising(store),people,services,visuals,about:getAboutContent(setting(ABOUT_CONTENT_KEY)),socialLinks:getSocialLinks(setting(SOCIAL_LINKS_KEY)),articles,highlights,sections};
 }
