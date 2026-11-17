@@ -1,7 +1,7 @@
 'use client';
 import {createContext,useContext,useEffect,useRef,useState,type ReactNode,type CSSProperties} from 'react';
 import {getImageProps} from 'next/image';
-import {ChevronLeft,ChevronRight,Pause,Play} from 'lucide-react';
+import {ChevronLeft,ChevronRight} from 'lucide-react';
 import {isAdActive,type AdPlacement,type PublicAdvertising} from '@/lib/advertising';
 import styles from './advertising.module.css';
 
@@ -91,9 +91,8 @@ export function AdvertisingSlot({placement,lang='ar'}:{placement:AdPlacement;lan
  </div>}
  </div>
  {(ads.some(a=>a.title||a.description))&&<div className={styles.caption} aria-live={paused?'polite':'off'}><strong>{ad.title}</strong><p>{ad.description}</p></div>}
- {multiple&&(settings.show_dots||settings.autoplay)&&<div className={styles.controls}>
+ {multiple&&settings.show_dots&&<div className={styles.controls}>
  {settings.show_dots&&<div className={styles.dots}>{ads.map((item,i)=><button key={item.id} type="button" aria-label={(en?'Show announcement ':'عرض الإعلان ')+(i+1)} aria-current={i===current?'true':undefined} onClick={()=>{setPaused(true);setIndex(i)}}/>)}</div>}
- {settings.autoplay&&!reduced&&<button className={styles.play} type="button" aria-label={paused?(en?'Resume autoplay':'استئناف التشغيل'):(en?'Pause autoplay':'إيقاف التشغيل مؤقتاً')} onClick={()=>setPaused(v=>!v)}>{paused?<Play size={16} aria-hidden="true"/>:<Pause size={16} aria-hidden="true"/>}</button>}
  </div>}
  </div></section>;
 }
